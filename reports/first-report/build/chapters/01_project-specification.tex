@@ -1,0 +1,35 @@
+\section{Project specification}
+
+The overall aim of this project is to effectively model and emulate the characteristics of an acoustic string instrument body via excitation of the instrument bridge with an impulse-like signal. This can be applied in the following scenarios:
+
+\begin{itemize}
+\item Conversion of the bridge force to sound pressure: a transfer function can be retrieved to translate the bridge force signal to an acoustic pressure signal. Applications include electric and 3D printed cellos and virtual-acoustic bowed-string instruments and pedal effects.
+\item Bridge force to bridge velocity: deriving the bridge admittance that needs to be known in modelling and simulation of bowed-string vibrations.
+\end{itemize}
+
+ Cello bridge admittance features fewer modes than the equivalent transfer function, thus is much simpler to model.
+
+ % NOTE: INSERT FIGURES HERE.
+
+ An impulse response of the system can be decomposed into its modal form, which yields a parallel set of 2nd-order IIR filters. This is equivalent to modelling each mode as a decaying harmonic oscillator. The aim of the project is to employ the Eigensystem Realisation Algorithm (ERA) to achieve this decomposition.
+
+ This method is potentially useful due to the singular value decomposition stage employed in the algorithm, which will allow a reduction in the order of the modes by removing singular values (and associated left and right singular vectors) from the system.
+
+ The expected tasks of the project as as follows:
+
+ \begin{enumerate}
+    \item Develop an impact hammer system with which repeatable measurements can be conducted;
+    \item Apply this to experimentally acquire the IRs of a number of cello bodies';
+    \item Use the ERA to modally decompose mono and stereo IRs into a reduced-order sum of body modes;
+    \item Test and evaluate the ERA, comparing performance to the Filter Diagonalisation Method (FDM).
+    \item Create a set of cello body models (in modally decomposed form) and develop demos that exemplify these.
+ \end{enumerate}
+
+ The expected learning outcomes of the project are:
+
+ \begin{enumerate}
+    \item A thorough understanding of modal decomposition methods.
+    \item Developed skills for acoustic measurement and audio signal acquisition.
+    \item Practical knowledge on acoustic impulse response applications.
+    \item Developed necessary programming skills.
+ \end{enumerate}
