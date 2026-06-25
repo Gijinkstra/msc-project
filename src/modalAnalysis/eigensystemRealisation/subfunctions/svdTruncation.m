@@ -23,8 +23,7 @@ function [Um, Sm, Vm, varargout] = svdTruncation(hankelMatrix, ...
 %       pair, so the truncation order is doubled.
 %
 %   In both modes the final truncation order is clamped to the smaller
-%   of the requested count and the minimum dimension of S, ensuring
-%   the truncation does not exceed available singular values.
+%   of the requested count and the minimum dimension of S.
 %
 % INPUTS:
 %   hankelMatrix - [double, M x N]   Hankel matrix from
@@ -126,6 +125,11 @@ if svdTolerance < SVD_TOLERANCE_CUTOFF
         svdTolerance);
 
     nModesRequested = indexToKeep(end);
+
+    % Retain an even number of modes.
+    if mod(nModesRequested, 2)
+        nModesRequested = nModesRequested - 1;   
+    end
 
 else
     
