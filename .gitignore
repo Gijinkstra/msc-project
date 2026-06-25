@@ -11,4 +11,5 @@
 *.synctex.gz
 *.bbl
 *.blg
+*.pdf
 /build/bin/

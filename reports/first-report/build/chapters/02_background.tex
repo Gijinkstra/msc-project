@@ -1,0 +1,102 @@
+\section{Background}
+\subsection{Literature}
+
+\subsection{Proofs}
+
+To ensure an adequate level of understanding has been gained of the underlying system and methods employed, hand-written proofs have been produced alongside the algorithm development. The following section is divided into three main areas:
+
+\begin{itemize}
+    \item Eigensystem Realisation
+    \item Modal form representation
+    \item Application to an example second-order system
+\end{itemize}
+
+\subsubsection{Eigensystem Realisation}
+
+This proof is a reproduction of the steps from [INSERT REFERENCE HERE]. Algorithm development has been carried out utilising formulations, thus to ensure consistency between mathematical notation and computation, it has been reproduced here in full.
+
+A system is exposed to a unit impulse input signal $u[k] = \delta[k]$ with initial condition of $x[0] = 0$. The impulse response of the system, $y[k]$ (also defined as Markov parameters) are as follows:
+\begin{align}
+    y[0] &= d, \label{eq:markov1} \\
+    y[1] &= \mathbf{c}^\top\mathbf{b}, \label{eq:markov2} \\
+    y[k] &= \mathbf{c}^\top \mathbf{A}^{k-1} \mathbf{b}, \quad k \geq 2 \label{eq:markov3}
+\end{align}
+A Hankel matrix is then defined based on the Markov parameters:
+\begin{align}
+\label{eq:hankel}
+    \mathbf{H}_0 = 
+    \begin{bmatrix} 
+        y[1] & y[2] & \dots & y[s] \\
+        y[2] & y[3] & \dots & y[s+1] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r] & y[r+1] & \dots & y[r+s-1]
+    \end{bmatrix},
+\end{align}
+alongside the shifted Hankel matrix:
+\begin{align}
+\label{eq:shift-hankel}
+    \mathbf{H}_1 = 
+    \begin{bmatrix} 
+        y[2] & y[3] & \dots & y[s+1] \\
+        y[3] & y[4] & \dots & y[s+2] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r+1] & y[r+2] & \dots & y[r+s]
+    \end{bmatrix},
+\end{align}
+where $r,s \in \mathbb{N}$. The values of $s$ and $r$ are set depending on the application. If they are too small, the system dynamics will not be appropriately captured, but if too large, could introduce noise sensitivity and numerical ill-conditioning. For an example of how these are treated within the full algorithm, consult Section \ref{sec:state}.
+
+When the system is free from noise, the Hankel matrix can be factorised by making substitutions from \ref{eq:markov2, eq:markov3}:
+\begin{align}
+\label{eq:factorised}
+    \mathbf{H}_0 = 
+    \begin{bmatrix}
+    \mathbf{c}^{\top}, & \mathbf{c}^{\top} \mathbf{A}, & \dots, & \mathbf{c}^{\top} \mathbf{A}^{r-1}
+    \end{bmatrix}^{\top}
+    \begin{bmatrix}
+    \mathbf{b}, & \mathbf{A} \mathbf{b}, & \dots, & \mathbf{A}^{s-1} \mathbf{b}
+    \end{bmatrix}
+    = \mathcal{O}_r \mathcal{C}_s,
+\end{align}
+where $mathcal{O}_r$ and $mathcal{C}_s$ are the extended observability and controllability matrices. Given that $r$ and $s$ are large enough, the rank of $\mathbf{H}_0$ is a minimal realisation of the system.
+
+In other words, given that enough information has been captured from the impulse response, a sufficiently large number of rows and columns utilised in the Hankel matrix will encode the entirety of the system dynamics. In a real world scenario, measurement noise will be captured in the Hankel matrix, thus the dominant modes of the system are mixed with modes corresponding to the noise. Separation of the noise modes of the system is carried out via the Singular Value Decomposition (SVD):
+\begin{align}
+\label{eq:svd}
+    \mathbf{H}_0 = \mathbf{U \Sigma V}^\top
+\end{align}
+By truncating the number $m$ of singular values so that only the dominant modes are retained, a rank-$m$ approximation yields:
+\begin{align}
+\label{eq:svdm}
+    \mathbf{H}_0 \approx \mathbf{U_m \Sigma_m V}_{m}^{\top}
+\end{align}
+where $\Sigma_m =$ diag$(\sigma_1,\sigma_1, \dots, \sigma_m)$ are the largest singular value entries. $U_m$ and $V_m$ are the truncated left and right singular vectors respectively.
+
+The state space matrices are composed as follows:
+\begin{align}
+\label{eq}
+\mathbf{\hat{A}} &= \mathbf{\Sigma}_{m}^{-1/2} \mathbf{U}_m \mathbf{H}_1 \mathbf{V}_m \mathbf{\Sigma}_{m}^{-1/2}, \\
+\mathbf{\hat{b}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{V}_m^{\top} \mathbf{e}_{1}^{(s)}, \\
+\mathbf{\hat{c}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{U}_{m}^{\top} \mathbf{e}_{1}^{(r)}, \\
+\hat{d} &= y[0],
+\end{align}
+
+where $\mathbf{e}_{1}^{(\ell)} = [1, 0, ..., 0]^{\top}$ is a canonical basis vector with dimension $\ell$. The reconstruction of the approximate states and output can now be represented in the canonical form:
+\begin{align}
+\label{eq:output}
+\begin{cases}
+    \mathbf{\hat{x}}[k+1] = \mathbf{\hat{A}} \mathbf{\hat{x}} [k] + \mathbf{\hat{b}} u[k], \\
+    \hat{y} [k] = \mathbf{\hat{c}}^T \mathbf{\hat{x}} [k] + \hat{d} u[k].
+\end{cases}
+\end{align}
+The shifted Hankel matrix $\mathbf{H}_1 = \mathcal{O}_r \mathbf{A} \mathbf{C}_s$ allows the recovery of the state transition matrix $\mathbf{A}$. When the rank of $\mathbf{A}$ matches the true system order, ther result is the minimum realisation of the system. This provides a very explicit trade-off between the computational complexity and exact impulse response reconstruction.
+
+\subsubsection{Modal form via eigendecomposition}
+Diagonalisation of the state space matrix $\mathbf{A}$ and associated transforms on $\mathbf{\hat{b}}$ and $\mathbf{\hat{c}}$ allow the system to be represented in terms of it's modal form via eigendecomposition $\mathbf{\hat{A}} = \mathbf{Q}^{-1} \Lambda \mathbf{Q}$, which allows the linear operations:
+\begin{equation}
+\label{eq:coord}
+\mathbf{\hat{x}} \leftarrow \mathbf{Q}^{-1}\mathbf{\hat{x}},
+\quad \mathbf{\hat{A}} \leftarrow \Lambda,
+\quad \mathbf{\hat{b}} \leftarrow \mathbf{Q}^{-1} \mathbf{\hat{b}},
+\quad \mathbf{\hat{c}} \leftarrow \mathbf{Q}^{\mathbf{T}} \mathbf{\hat{c}}
+\end{equation}
+

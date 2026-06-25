@@ -1,0 +1,37 @@
+\section{Approach and methodology}
+\label{sec:method}
+
+Due to logistical constraints, computational portions of the project are carried out prior to any experimental setup and measurements.
+
+\section{Schedule}
+\label{sec:schedule}
+
+% Little bit of verbiage around the Gannt chart here.
+
+\section{Current state}
+\label{sec:state}
+
+As outlined in Section \ref{sec:method}, all work carried out thus far is computational, background mathematical proofs and background reading.
+
+A custom Eigensystem Realisation Algorithm pipeline has been implemented in MATLAB, with associated documentation. The current system is implemented for a Single Input Single Output (SISO) system, but can easily be extended for a Multiple Input Multiple Output (MIMO) system if necessary.
+
+An example function has been included in [INSERT SECTION REFERENCE HERE]. The pipeline has been designed to require little input from the end user. Default values for each function argument have been defined to maximise data coverage at the expense of computational complexity with an additional configuration structure that can be passed to adjust the inputs of each relevant subfunction within the pipeline.
+
+For example, the Hankel matrix construction requires a defined number of rows and columns to be specified. If a 1000 sample signal is passed into the pipeline, the number of columns and rows are set by the following formula by default:
+
+\begin{equation}
+\label{eq:hankel-columns}
+    c = floor \left(\frac{N}{2} - 1\right)
+\end{equation}
+
+where $c$ represents the number of columns in the Hankel matrix, and $N$ represents the number of samples in the signal. A sample must be removed as the canonical form of the Hankel matrix begins from the second output sample, $y[1]$, and there must be enough data to allow a shifted Hankel matrix construction.
+
+Default options can also be adjusted by editing config fields, allowing for custom cutoffs to be defined.
+For example, the normalised singular value tolerance can be adjusted to a value between 0 and 1 to define a cutoff to separate signal and noise subspace, thus the pipeline will only retain values above the cutoff. In the event that the cutoff results in an odd-value number of singular values in $\Sigma$, the number dimensions of $\Sigma$ are reduced by 1 to ensure an even number of complex conjugate modes are retained.
+
+Whilst the pipeline is still subject to change, the full example with associated README documentation can be examined here.
+
+\section{Planned work}
+\label{sec:plan}
+
+% More words surrounding the planned procedure. Build up further methods for identifying true modes in the ERA, comparison with FDM.

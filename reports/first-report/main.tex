@@ -3,7 +3,7 @@
 \usepackage{graphicx} % Required for inserting images.
 \usepackage[margin=25mm]{geometry}
 \parskip 4.2pt  % Sets spacing between paragraphs.
-% \renewcommand{\baselinestretch}{1.5}  % Uncomment for 1.5 spacing between lines.
+\renewcommand{\baselinestretch}{1.5}
 \parindent 8.4pt  % Sets leading space for paragraphs.
 \usepackage[font=sf]{caption} % Changes font of captions.
 
@@ -16,6 +16,7 @@
 \usepackage{hyperref} % Required for inserting clickable links.
 \usepackage{listings}
 \usepackage{matlab-prettifier}
+\usepackage{pgfgantt}
 
 \title{Reduced-order modelling of a cello body transfer function: First Report}
 \author{Alastair Dempsey\thanks{
@@ -28,10 +29,11 @@ Repository: \href{https://github.com/Gijinkstra/estimation-theory-car-tracker/tr
 \maketitle
 \tableofcontents
 
-% \section{Project specification} Placeholder
-
 \input{build/chapters/01_project-specification.tex}
 
+\input{build/chapters/02_background.tex}
+
+\input{build/chapters/03_project-overview.tex}
 % \bibliographystyle{IEEEtran}
 % \bibliography{bibby/references}
 

@@ -32,7 +32,7 @@ sig = sum(sigs);
 
 opts = eraConfig();
 opts.returnDebug = true;
-svdTolerance = 0.2;
+svdTolerance = 0.3;
 
 % Try changing the number of modes to see how the system reconstructs a
 % subspace of the original signal.
