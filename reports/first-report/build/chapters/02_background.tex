@@ -16,11 +16,17 @@ To ensure an adequate level of understanding has been gained of the underlying s
 This proof is a reproduction of the steps from [INSERT REFERENCE HERE]. Algorithm development has been carried out utilising formulations, thus to ensure consistency between mathematical notation and computation, it has been reproduced here in full.
 
 A system is exposed to a unit impulse input signal $u[k] = \delta[k]$ with initial condition of $x[0] = 0$. The impulse response of the system, $y[k]$ (also defined as Markov parameters) are as follows:
+\begin{subequations}
+\label{eq:markov}
 \begin{align}
-    y[0] &= d, \label{eq:markov1} \\
-    y[1] &= \mathbf{c}^\top\mathbf{b}, \label{eq:markov2} \\
-    y[k] &= \mathbf{c}^\top \mathbf{A}^{k-1} \mathbf{b}, \quad k \geq 2 \label{eq:markov3}
+    \label{eq:markov1}
+    y[0] &= d,\\
+    \label{eq:markov2}
+    y[1] &= \mathbf{c}^\top\mathbf{b},\\
+    \label{eq:markov3}
+    y[k] &= \mathbf{c}^\top \mathbf{A}^{k-1} \mathbf{b}, \quad k \geq 2
 \end{align}
+\end{subequations}
 A Hankel matrix is then defined based on the Markov parameters:
 \begin{align}
 \label{eq:hankel}
@@ -45,7 +51,7 @@ alongside the shifted Hankel matrix:
 \end{align}
 where $r,s \in \mathbb{N}$. The values of $s$ and $r$ are set depending on the application. If they are too small, the system dynamics will not be appropriately captured, but if too large, could introduce noise sensitivity and numerical ill-conditioning. For an example of how these are treated within the full algorithm, consult Section \ref{sec:state}.
 
-When the system is free from noise, the Hankel matrix can be factorised by making substitutions from \ref{eq:markov2, eq:markov3}:
+When the system is free from noise, the Hankel matrix can be factorised by making substitutions from \ref{eq:markov}:
 \begin{align}
 \label{eq:factorised}
     \mathbf{H}_0 = 
@@ -57,7 +63,7 @@ When the system is free from noise, the Hankel matrix can be factorised by makin
     \end{bmatrix}
     = \mathcal{O}_r \mathcal{C}_s,
 \end{align}
-where $mathcal{O}_r$ and $mathcal{C}_s$ are the extended observability and controllability matrices. Given that $r$ and $s$ are large enough, the rank of $\mathbf{H}_0$ is a minimal realisation of the system.
+where $\mathcal{O}_r$ and $\mathcal{C}_s$ are the extended observability and controllability matrices. Given that $r$ and $s$ are large enough, the rank of $\mathbf{H}_0$ is a minimal realisation of the system.
 
 In other words, given that enough information has been captured from the impulse response, a sufficiently large number of rows and columns utilised in the Hankel matrix will encode the entirety of the system dynamics. In a real world scenario, measurement noise will be captured in the Hankel matrix, thus the dominant modes of the system are mixed with modes corresponding to the noise. Separation of the noise modes of the system is carried out via the Singular Value Decomposition (SVD):
 \begin{align}
@@ -91,12 +97,63 @@ where $\mathbf{e}_{1}^{(\ell)} = [1, 0, ..., 0]^{\top}$ is a canonical basis vec
 The shifted Hankel matrix $\mathbf{H}_1 = \mathcal{O}_r \mathbf{A} \mathbf{C}_s$ allows the recovery of the state transition matrix $\mathbf{A}$. When the rank of $\mathbf{A}$ matches the true system order, ther result is the minimum realisation of the system. This provides a very explicit trade-off between the computational complexity and exact impulse response reconstruction.
 
 \subsubsection{Modal form via eigendecomposition}
-Diagonalisation of the state space matrix $\mathbf{A}$ and associated transforms on $\mathbf{\hat{b}}$ and $\mathbf{\hat{c}}$ allow the system to be represented in terms of it's modal form via eigendecomposition $\mathbf{\hat{A}} = \mathbf{Q}^{-1} \Lambda \mathbf{Q}$, which allows the linear operations:
+Diagonalisation of the state space matrix $\mathbf{A}$ and associated transforms on $\mathbf{\hat{b}}$ and $\mathbf{\hat{c}}$ allow the system to be represented in terms of it's modal form via eigendecomposition $\mathbf{\hat{A}} = \mathbf{Q}^{-1} \Lambda \mathbf{Q}$, which are expressed by:
 \begin{equation}
 \label{eq:coord}
-\mathbf{\hat{x}} \leftarrow \mathbf{Q}^{-1}\mathbf{\hat{x}},
-\quad \mathbf{\hat{A}} \leftarrow \Lambda,
-\quad \mathbf{\hat{b}} \leftarrow \mathbf{Q}^{-1} \mathbf{\hat{b}},
-\quad \mathbf{\hat{c}} \leftarrow \mathbf{Q}^{\mathbf{T}} \mathbf{\hat{c}}
+    \mathbf{\hat{x}} \leftarrow \mathbf{Q}^{-1}\mathbf{\hat{x}},
+    \quad \mathbf{\hat{A}} \leftarrow \Lambda,
+    \quad \mathbf{\hat{b}} \leftarrow \mathbf{Q}^{-1} \mathbf{\hat{b}},
+    \quad \mathbf{\hat{c}} \leftarrow \mathbf{Q}^{\mathbf{T}} \mathbf{\hat{c}}
 \end{equation}
+Where $\mathbf{Q}$ is the matrix of eigenvectors of the system and $\mathbf{\Lambda}$ is the matrix of eigenvalues. As the eigenvalues of the system are invariant under transformation, they allow the epression of each mode of the system in a linearly independant basis.
 
+After making the co-ordinate substitutions for \ref{eq:markov}, the output is of the following form:
+\begin{align}
+\label{eq:markov-eig}
+    \mathbf{\hat{x}}[k + 1] = \mathbf{\Lambda} \mathbf{ \hat{x}}[k] + \mathbf{Q^{-1} \hat{b}}u[k]\\
+    y[k] = \left( \mathbf{Q^{T} \hat{c}} \right)^\mathbf{T} \mathbf{ \hat{x}}[k] + \hat{d}u[k]
+\end{align}
+By exploiting the diagonal nature of the the eigenvalue matrix, a further co-ordinate transformation can be carried out by taking the diagonal of $\mathbf{\Lambda}$, $\mathbf{\tilde{A}}$ = diag$(\mathbf{\Lambda}) = [\lambda_1, \lambda_2, \dots, \lambda_m]^{\top}$. Utilising this property provides an efficient and succinct method for computation of the reconstructed impulse response and physical modes of the system as an expression of power of $\mathbf{\tilde{A}}$ as opposed to a recursive calculation:
+\begin{align}
+\label{eq:markov-again}
+\begin{cases}
+    \mathbf{\hat{x}}[k + 1] =  \mathbf{\tilde{A}}^{k-1} \mathbf{Q^{-1} \hat{b}}, \\
+    \tilde{y}[k] =  \mathbf{c}^{\top} \mathbf{Q} \mathbf{\tilde{A}}^{k-1}\mathbf{b}, \quad k \geq 2
+\end{cases}
+\end{align}
+
+\subsection{Application to a second-order system}
+Consider the standard form of a second-order system harmonic oscillator:
+\begin{align}
+    F(t) = m\ddot{x} + c\dot{x} + kx,
+\end{align}
+where $F(t)$ represents the driving force, $m$ is mass, $\ddot{x}$ is the acceleration, $c$ is a damping constant, $\dot{x}$ is velocity, $k$ is the spring constant, and $x$ is displacement. This can be rewritten in state space form:
+\begin{align}
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}u(t) \\
+y(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}u(t)
+\end{align}
+where:
+\begin{gather}
+\dot{\mathbf{x}} = \begin{bmatrix} \dot{x} \\ \ddot{x} \end{bmatrix}, \quad
+\mathbf{x} = \begin{bmatrix} x \\ \dot{x} \end{bmatrix}, \\
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -\frac{k}{m} & -\frac{c}{m} \end{bmatrix}, \quad
+\mathbf{B} = \begin{bmatrix} 0 \\ \frac{1}{m} \end{bmatrix}, \quad
+\mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}, \quad
+\mathbf{D} = 0.
+\end{gather}
+By solving det$(\mathbf{A} - \lambda \mathbf{I}) = 0$, the characteristic equation is:
+\begin{align}
+\lambda^2 + \frac{c}{m} \lambda + \frac{k}{m} = 0,
+\end{align}
+which yields the eigenvalues
+\begin{align}
+\label{eq:eigs}
+\lambda_i = \frac{-\frac{c}{m} \pm \sqrt{(\frac{c}{m})^2} - 4\frac{k}{m}}{2}
+\end{align}
+These can be expressed as:
+\begin{align}
+\lambda = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^2}
+\end{align}
+where $\omega_n = \sqrt{k/m}$ which is the natural frequency and $\zeta = \frac{c}{2\sqrt{km}}$ which is the damping factor. In the case of $\zeta < 1$, the system is underdamped, producing a decaying sinusoid.
+
+Applying this deduction to the diagonalisation of $\hat{\mathbf{A}}$ from \ref{eq:coord}, it is evident that the eigendecomposition of any state matrix produces the fundamental frequencies and decay factors of the system, where each eigenvalue corresponds to a mode, where the imaginary component represents the frequency of oscillation, and the real part represents the damping factor.
