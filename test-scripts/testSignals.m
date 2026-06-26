@@ -32,40 +32,52 @@ sig = sum(sigs);
 
 opts = eraConfig();
 opts.returnDebug = true;
-svdTolerance = 0.3;
+svdTolerance = 7;
 
 % Try changing the number of modes to see how the system reconstructs a
 % subspace of the original signal.
 [outputSignal, frequencies, decayFactors, modes, debug] = ...
     eigensystemRealisation(sig, svdTolerance, Fs, opts);
 
+[~, idx] = sort(frequencies);
+
+frequencies = frequencies(idx);
+decayFactors = decayFactors(idx);
+modes = modes(idx);
+debug.Reconstruction.modalImpulses = debug.Reconstruction.modalImpulses(idx, :);
+debug.Modal.decayRates = debug.Modal.decayRates(idx);
+
 f = figure;
 til = tiledlayout(3, 3);
 
 tf = nexttile(1);
-title('7 Individual impulse responses')
+title('7 Individual impulse responses', 'Interpreter', 'latex')
 hold(tf, "on")
-xlabel('Time (ms)')
-ylabel('Amplitude')
+xlabel('Time (ms)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
+ylim([-3 3])
 
 tf2 = nexttile(2);
-title('Frequency response of individual impulse responses')
-xlabel('Frequency (kHz)')
-ylabel('Amplitude')
+title('Frequency response of individual impulse responses', 'Interpreter', 'latex')
+xlabel('Frequency (kHz)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
 hold(tf2, "on")
+ylim([0 0.4])
 
 tf3 = nexttile(4);
 title("Reconstructed impulse responses with a singular value tolerance " + ...
-    "of "  +  string(svdTolerance))
+    "of "  +  string(svdTolerance), 'Interpreter', 'latex')
 hold(tf3, "on")
-xlabel('Time (ms)')
-ylabel('Amplitude')
+xlabel('Time (ms)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
+ylim([-3 3])
 
 tf4 = nexttile(5);
-title('Frequency response of reconstructed individual impulse responses')
-xlabel('Frequency (kHz)')
-ylabel('Amplitude')
+title('Frequency response of reconstructed individual impulse responses', 'Interpreter', 'latex')
+xlabel('Frequency (kHz)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
 hold(tf4, "on")
+ylim([0 0.4])
 
 for m = 1 : M
     plot(tf, t/1000, sigs(m, :), 'LineWidth', 1.1, 'DisplayName', ...
@@ -191,13 +203,20 @@ sig = sig + sign;
 
 opts = eraConfig();
 opts.returnDebug = true;
+svdTolerance = 0.2;
 
 % Try changing the number of modes to see how the system reconstructs a
 % subspace of the original signal.
-[outputSignal, frequencies, dampingFactors, modes, debug] = ...
-    eigensystemRealisation(sig, 3, Fs, opts);
+[outputSignal, frequencies, decayFactors, modes, debug] = ...
+    eigensystemRealisation(sig, svdTolerance, Fs, opts);
 
-debug.impulseNMSE = sum((sig - outputSignal).^2) ./ sum(sig.^2);
+[~, idx] = sort(frequencies);
+
+frequencies = frequencies(idx);
+decayFactors = decayFactors(idx);
+modes = modes(idx);
+debug.Reconstruction.modalImpulses = debug.Reconstruction.modalImpulses(idx, :);
+debug.Modal.decayRates = debug.Modal.decayRates(idx);
 
 f = figure;
 til = tiledlayout(3, 3);
@@ -205,27 +224,31 @@ til = tiledlayout(3, 3);
 tf = nexttile(1);
 title(string(M) +  "Individual impulse responses")
 hold(tf, "on")
-xlabel('Time (ms)')
-ylabel('Amplitude')
+xlabel('Time (ms)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
+ylim([-3 3])
 
 tf2 = nexttile(2);
-title('Frequency response of individual impulse responses')
-xlabel('Frequency (kHz)')
-ylabel('Amplitude')
+title('Frequency response of individual impulse responses', 'Interpreter', 'latex')
+xlabel('Frequency (kHz)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
 hold(tf2, "on")
+ylim([0 0.4])
 
 tf3 = nexttile(4);
 title("Reconstructed impulse responses with a singular value tolerance " + ...
-    "of "  +  string(opts.svdTolerance))
+    "of "  +  string(svdTolerance), 'Interpreter', 'latex')
 hold(tf3, "on")
-xlabel('Time (ms)')
-ylabel('Amplitude')
+xlabel('Time (ms)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
+ylim([-3 3])
 
 tf4 = nexttile(5);
-title('Frequency response of reconstructed individual impulse responses')
-xlabel('Frequency (kHz)')
-ylabel('Amplitude')
+title('Frequency response of reconstructed individual impulse responses', 'Interpreter', 'latex')
+xlabel('Frequency (kHz)', 'Interpreter', 'latex')
+ylabel('Amplitude', 'Interpreter', 'latex')
 hold(tf4, "on")
+ylim([0 0.4])
 
 for m = 1 : M
     plot(tf, t/1000, sigs(m, :), 'LineWidth', 1.1, 'DisplayName', ...
@@ -268,7 +291,7 @@ plot(t / 1000, outputSignal, '--r', 'LineWidth', 1.5, 'DisplayName', ...
 legend
 xlabel('Time (ms)')
 ylabel('Amplitude')
-reconError = sprintf("NMSE: %.4d", debug.impulseNMSE);
+reconError = sprintf("NMSE: %.4d", debug.Reconstruction.impulseNMSE);
 text(0.7, 0.3, reconError, 'Units', 'normalized')
 
 nexttile(8)
