@@ -5,7 +5,7 @@
 \parskip 4.2pt  % Sets spacing between paragraphs.
 \renewcommand{\baselinestretch}{1.5}
 \parindent 8.4pt  % Sets leading space for paragraphs.
-\usepackage[font=sf]{caption} % Changes font of captions.
+% \usepackage[font=sf]{caption} % Changes font of captions.
 
 \usepackage{float}
 \usepackage{amsmath}
@@ -17,16 +17,23 @@
 \usepackage{listings}
 \usepackage{matlab-prettifier}
 \usepackage{pgfgantt}
+\usepackage{subcaption}
 
 \title{Reduced-order modelling of a cello body transfer function: First Report}
 \author{Alastair Dempsey\thanks{
 Repository: \href{https://github.com/Gijinkstra/msc-project}
-{github.com/Gijinkstra/msc-project}
+{github.com/Gijinkstra/msc-project}} \\
+[1cm]{\small Supervisor: Dr. Maarten Van Walstijn}}
+
+\DeclareCaptionFormat{custom}
+{
+    \textbf{#1#2}\textit{\small #3}
 }
-}
+\captionsetup{format=custom}
 
 \begin{document}
 \maketitle
+\newpage
 \tableofcontents
 
 \input{build/chapters/01_project-specification.tex}
@@ -34,7 +41,9 @@ Repository: \href{https://github.com/Gijinkstra/msc-project}
 \input{build/chapters/02_background.tex}
 
 \input{build/chapters/03_project-overview.tex}
-% \bibliographystyle{IEEEtran}
-% \bibliography{bibby/references}
+
+\newpage
+\bibliographystyle{IEEEtran}
+\bibliography{build/bibby/references}
 
 \end{document}

@@ -29,7 +29,30 @@ where $c$ represents the number of columns in the Hankel matrix, and $N$ represe
 Default options can also be adjusted by editing config fields, allowing for custom cutoffs to be defined.
 For example, the normalised singular value tolerance can be adjusted to a value between 0 and 1 to define a cutoff to separate signal and noise subspace, thus the pipeline will only retain values above the cutoff. In the event that the cutoff results in an odd-value number of singular values in $\Sigma$, the number dimensions of $\Sigma$ are reduced by 1 to ensure an even number of complex conjugate modes are retained.
 
-Whilst the pipeline is still subject to change, the full example with associated README documentation can be examined here.
+\subsection{Example simulated waveform}
+
+An example waveform has been simulated in \ref{fig:example}, with the following parameters:
+
+
+\begin{table}[h!]
+    \begin{tabular}{ |p{2cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|}
+        \hline
+        \multicolumn{5}{|c|}{Modal parameters}\\
+        \hline
+        Mode number & Amplitude (1) & Frequency (Hz) & Phase (rads$^{-1}$) & Decay Factor (1) \\
+        \hline
+        1 & 1.5 & 500 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}
+\label{fig:example}
+\includegraphics{build/figures/out/impulse-reconstruction.pdf}
+\caption{\textnormal{\textbf{(a)}} Composite impulse with an SNR of 5 dB and clean impulse, \textnormal{\textbf{(b)}} Reconstructed clean impulse after ERA with a mode order of 3, \textnormal{\textbf{(c)}} Constituent modes of the impulse signal, \textnormal{\textbf{(d)}} Reconstructed constituent modes.}
+\end{figure}
+
+
 
 \section{Planned work}
 \label{sec:plan}
