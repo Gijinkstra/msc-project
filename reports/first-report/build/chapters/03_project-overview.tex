@@ -7,6 +7,19 @@ Due to logistical constraints, computational portions of the project are carried
 \label{sec:schedule}
 
 % Little bit of verbiage around the Gannt chart here.
+The vast majority of the computational and algorithmic steps will be carried out prior to any measurements being performed, with continuous validation carried out utilising simulated signals.
+\begin{ganttchart}{1}{14}
+\label{fig:gannt-cahrt}
+\gantttitle{Project Timeline}{14} \\
+\gantttitlelist{1,...,14}{1} \\
+\ganttgroup{Group 1}{1}{7} \\
+\ganttbar{Background reading}{1}{14} \\
+\ganttlinkedbar{Algorithm development}{2}{8} \ganttnewline
+\ganttmilestone{Milestone}{7} \ganttnewline
+\ganttbar{Final Task}{8}{12}
+\ganttlink{elem2}{elem3}
+\ganttlink{elem3}{elem4}
+\end{ganttchart}
 
 \section{Current state}
 \label{sec:state}
@@ -48,7 +61,7 @@ An example waveform has been simulated in \ref{fig:example}, with the following 
 
 \begin{figure}
 \label{fig:example}
-\includegraphics{build/figures/out/impulse-reconstruction.pdf}
+% \includegraphics{build/figures/out/impulse-reconstruction.pdf}
 \caption{\textnormal{\textbf{(a)}} Composite impulse with an SNR of 5 dB and clean impulse, \textnormal{\textbf{(b)}} Reconstructed clean impulse after ERA with a mode order of 3, \textnormal{\textbf{(c)}} Constituent modes of the impulse signal, \textnormal{\textbf{(d)}} Reconstructed constituent modes.}
 \end{figure}
 

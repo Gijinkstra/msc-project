@@ -23,8 +23,10 @@ The project applies the Eigensystem Realisation Algorithm (ERA), originally outl
     \item Singular value spectrum: By examining the singular values of the SVD decomposition of the Hankel matrix, this may provide a visual indicator of the singular value cut-off point between the signal and noise subspace.
     \item Modal Amplitude Coherence (MAC): Defined in \cite{era} as "The coherence between each modal amplitude history and an ideal one by extrapolating the initial value history to later points using the identified eigenvalue." Overestimating the number of modes in the system may give rise to computational modes (unphysical) in the results, thus the MAC may be used to filter these.
     \item Modal Phase Collinearity (MPC): MPC checks the consistency of the identified mode shapes with the mdoe shapes directly from the data. It should be noted here that this is defined for a MIMO system, and further work will need to be carried out to verify its use in the SISO system of this investigation.
-    \item 
+    \item Stabilization Diagrams: These diagrams iterate over the eigensystem realisation for various mode orders to determine which modes are consistent throughout the model. Stable, physical modes will repeatedly appear across all model orders.
 \end{itemize}
+
+Each of these methods can be explored to determine which is most appropriate for the SISO model, various parameters require a Multiple Input Single Output, or MIMO system.
 
 \subsection{Mathematical Formulation}
 \label{sec:maths}
