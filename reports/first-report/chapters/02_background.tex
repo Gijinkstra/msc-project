@@ -1,0 +1,189 @@
+% !TEX root = ../main.tex
+\section{Background}
+\subsection{Literature}
+\label{sec:lit}
+
+% 1st point - broad statement of the problem
+Accurate sound profile modelling of acoustic stringed instruments is a challenging problem within the digital audio effects field. A naive view of the system model may consider it as a vibrating string with specific boundary conditions imposed at the bridge and the neck of the instrument. The reality is that a complex interplay between the string, neck, bridge and body of the instrument which gives rise to the traditional acoustic timbre \cite{rossing-string-instruments}.
+Non-linearities and coupling between the vibrational modes of the strings and body of the instrument via the bridge gives rise to a rich sound profile, and consequently, a detailed frequency spectrum.
+
+% 2nd point - Mathematical framework
+The typical analytical framework treats the instrument as a linear second order system with finite degrees of freedom where each mode is a damped harmonic oscillator \cite{modal-analysis-violin}. This approach offers several notable benefits, one of which is the linear independence of the eigenvectors of the system, or fundamental modes. By decomposing the system into a set of composite waveforms, an elegant formulation which yields the fundamental frequencies, damping factor and fundamental modes of the instrument can be recovered via the system poles \cite{juang-1994-book}. Whilst an attractive approach, recovery of the modes themselves are difficult due to the introduction of measurement noise into the system. Several methods have been developed in an attempt to rectify this.
+% 3rd point - Survey of methods
+
+A fundamental limitation of non-parametric methods, such as the Discrete Fourier Transform as a frequency domain analysis tool is the inability to represent multiple modes at the same frequency and modes which are tightly spaced in the frequency domain, being gated by the frequency resolution $\frac{1}{N\tau}$. Parametric methods, such as Autoregressive Moving Average (ARMA), Multiple Signal Classification (MUSIC) and Estimation of Signal Parameters via Rotational Invariance Techniques (ESPRIT) make some underlying assumptions about the form of the data \cite{music, esprit}. By paying for this loss of generality, they become a much more powerful analysis tool in describing the underlying behaviour of the signal. A direct consequence of this assumption is that inappropriate application of parametric methods can produce misleading or meaningless results in the event the model is a poor match for the signal under investigation \cite{hayes}.
+Several applications of these methods in the context of modal parameter extraction have been applied \cite{mode-extraction}, all of which are included in the Matlab Vibration Analysis toolbox.
+
+% Write a little bit about FDM in here.
+The basis for this project will be an extension of the work explored in \cite{oneill}. Within this work, the Filter Diagonalisation Method (FDM) \cite{fdm} is applied to the cello body transfer function, which is comprised of a large number of modes, and utilises the modal parameters produced (frequency, amplitude, phase and damping factor) to compose a set of IIR filter coefficients via the impulse invariant method. There are several challenges in the utilisation of the FDM method, notably the modal density of the cello body transfer function, the degree of manual tuning of the rejection thresholds necessary for each modal parameter, and the computational time associated with applying the FDM. Whilst the method is computationally expensive, it has received positive feedback on its sound profile from a professional cellist when applied to a 3D printed cello system, and visually approximates the true cello body frequency response function well.
+% 4th point - Current method applied, why is it good.
+
+To explore alternative methods with reduced computational complexity and the possibility of algorithm based spurious mode rejection, the Eigensystem Realisation Algorithm (ERA), originally outlined by Juang and Pappa \cite{era,era-space} for use in structural modal analysis will be implemented. The ERA is a parametric method based on Hankel matrix construction and signal-noise subspace truncation via singular value decomposition (SVD).
+The full derivation of the ERA can be found in Section \ref{sec:era-proof}. As outlined in Section \ref{sec:proj-spec}, there are several notable expected benefits of utilising the ERA such as separation of the noise and signal subspace with more rigorous techniques applied. Potential avenues are listed in Section \ref{sec:method}.
+
+Overall, there is potential for ERA to offer similar performance to the FDM method for parametric convolution, with the additional benefit of a reduced burden on manual intervention when analysing the modes and accompanying FRF to reproduce desriable modal profile. A comparison will be drawn between the two methods, with the aim of implementing a live demo comparing both approaches.
+
+\subsection{Mathematical Formulation}
+\label{sec:maths}
+
+To contextualise the algorithm development carried out, the mathematical background has been included, alongside further fundamental steps. The following section is divided into three main areas:
+
+\begin{enumerate}
+    \item Eigensystem Realisation
+    \item Modal form representation
+    \item Diagonalisation of a second-order system
+\end{enumerate}
+
+The background necessary for implementing the diagonalised system as parallel IIR filters is ongoing, and thus is missing from this treatment.
+
+\subsubsection{Eigensystem Realisation}
+\label{sec:era-proof}
+
+The full treatment and derivation of the ERA can be found in \cite{juang-1994-book}
+
+A system is exposed to a unit impulse input signal $u[k] = \delta[k]$ with initial condition of $x[0] = 0$. The impulse response of the system, $y[k]$ (also defined as Markov parameters) are as follows:
+\begin{subequations}
+\label{eq:markov}
+\begin{align}
+    \label{eq:markov1}
+    y[0] &= d,\\
+    \label{eq:markov2}
+    y[1] &= \mathbf{c}^\top \mathbf{b},\\
+    \label{eq:markov3}
+    y[k] &= \mathbf{c}^\top \mathbf{A}^{k-1} \mathbf{b}, \quad k \geq 2
+\end{align}
+\end{subequations}
+A Hankel matrix is then defined based on the Markov parameters:
+\begin{align}
+\label{eq:hankel}
+    \mathbf{H}_0 = 
+    \begin{bmatrix} 
+        y[1] & y[2] & \dots & y[s] \\
+        y[2] & y[3] & \dots & y[s+1] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r] & y[r+1] & \dots & y[r+s-1]
+    \end{bmatrix},
+\end{align}
+alongside the shifted Hankel matrix:
+\begin{align}
+\label{eq:shift-hankel}
+    \mathbf{H}_1 = 
+    \begin{bmatrix} 
+        y[2] & y[3] & \dots & y[s+1] \\
+        y[3] & y[4] & \dots & y[s+2] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r+1] & y[r+2] & \dots & y[r+s]
+    \end{bmatrix},
+\end{align}
+where $r,s \in \mathbb{N}$. The values of $s$ and $r$ are set depending on the application. If they are too small, the system dynamics will not be appropriately captured, but if too large, could introduce noise sensitivity and numerical ill-conditioning.
+
+When the system is free from noise, the Hankel matrix can be factorised by making substitutions from \eqref{eq:markov}:
+\begin{align}
+\label{eq:factorised}
+    \mathbf{H}_0 = 
+    \begin{bmatrix}
+    \mathbf{c}^{\top}, & \mathbf{c}^{\top} \mathbf{A}, & \dots, & \mathbf{c}^{\top} \mathbf{A}^{r-1}
+    \end{bmatrix}^{\top}
+    \begin{bmatrix}
+    \mathbf{b}, & \mathbf{A} \mathbf{b}, & \dots, & \mathbf{A}^{s-1} \mathbf{b}
+    \end{bmatrix}
+    = \mathcal{O}_r \mathcal{C}_s,
+\end{align}
+where $\mathcal{O}_r$ and $\mathcal{C}_s$ are the extended observability and controllability matrices. Given that $r$ and $s$ are large enough, the rank of $\mathbf{H}_0$ is a minimal realisation of the system.
+
+In other words, given that enough information has been captured from the impulse response, a sufficiently large number of rows and columns utilised in the Hankel matrix will encode the entirety of the system dynamics. In a real world scenario, measurement noise will be captured in the Hankel matrix, thus the dominant modes of the system are mixed with modes corresponding to the noise. Separation of the noise modes of the system is carried out via the Singular Value Decomposition (SVD):
+\begin{align}
+\label{eq:svd}
+    \mathbf{H}_0 = \mathbf{U \Sigma V}^\top
+\end{align}
+By truncating the number $m$ of singular values so that only the dominant modes are retained, a rank-$m$ approximation yields:
+\begin{align}
+\label{eq:svdm}
+    \mathbf{H}_0 \approx \mathbf{U}_m \mathbf{\Sigma}_m \mathbf{V}_{m}^{\top}
+\end{align}
+where $\Sigma_m =$ diag$(\sigma_1,\sigma_2, \dots, \sigma_m)$ are the largest singular value entries. $U_m$ and $V_m$ are the truncated left and right singular vectors respectively.
+
+The state space matrices are composed as follows:
+\begin{align}
+\label{eq:ss}
+\hat{\mathbf{A}} &= \mathbf{\Sigma}_{m}^{-1/2} \mathbf{U}_m \mathbf{H}_1 \mathbf{V}_m \mathbf{\Sigma}_{m}^{-1/2}, \\
+\hat{\mathbf{b}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{V}_m^{\top} \mathbf{e}_{1}^{(s)}, \\
+\hat{\mathbf{c}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{U}_{m}^{\top} \mathbf{e}_{1}^{(r)}, \\
+\hat{d} &= y[0],
+\end{align}
+
+where $\mathbf{e}_{1}^{(\ell)} = [1, 0, ..., 0]^{\top}$ is a canonical basis vector with dimension $\ell$. The reconstruction of the approximate states and output can now be represented in the canonical form:
+\begin{align}
+\label{eq:output}
+\begin{cases}
+    \hat{\mathbf{x}}[k+1] = \hat{\mathbf{A}} \hat{\mathbf{x}} [k] + \hat{\mathbf{b}} u[k], \\
+    \hat{y} [k] = \hat{\mathbf{c}}^{\top} \hat{\mathbf{x}} [k] + \hat{d} u[k].
+\end{cases}
+\end{align}
+The shifted Hankel matrix $\mathbf{H}_1 = \mathcal{O}_r \mathbf{A} \mathbf{C}_s$ allows the recovery of the state transition matrix $\hat{\mathbf{A}}$. When the rank of $\hat{\mathbf{A}}$ matches the true system order, the result is the minimum realisation of the system. This provides a very explicit trade-off between the computational complexity and accuracy of the impulse response reconstruction.
+
+\subsubsection{Modal form via eigendecomposition}
+Diagonalisation of the state space matrix $\hat{\mathbf{A}}$ and associated transforms on $\hat{\mathbf{b}}$ and $\hat{\mathbf{c}}$ allow the system to be represented in terms of it's modal form via eigendecomposition $\hat{\mathbf{A}} = \mathbf{Q} \Lambda \mathbf{Q}^{-1}$, which are expressed by:
+\begin{equation}
+\label{eq:coord}
+    \hat{\mathbf{x}}       \leftarrow \mathbf{Q}^{-1}\mathbf{\hat{x}},
+    \quad \hat{\mathbf{A}} \leftarrow \Lambda,
+    \quad \hat{\mathbf{b}} \leftarrow \mathbf{Q}^{-1} \hat{\mathbf{b}},
+    \quad \hat{\mathbf{c}} \leftarrow \mathbf{Q}^{\top} \hat{\mathbf{c}}
+\end{equation}
+Where $\mathbf{Q}$ is the matrix of eigenvectors of the system and $\mathbf{\Lambda}$ is the matrix of eigenvalues. As the eigenvalues of the system are invariant under transformation, they allow the expression of each mode of the system in a linearly independant basis.
+
+After making the co-ordinate substitutions for \eqref{eq:markov}, the output is of the following form:
+\begin{align}
+\label{eq:markov-eig}
+    \mathbf{\hat{x}}[k + 1] = \mathbf{\Lambda} \mathbf{ \hat{x}}[k] + \mathbf{Q^{-1} \hat{b}}u[k]\\
+    y[k] = \left( \mathbf{Q}^{\top} \hat{\mathbf{c}} \right)^{\top} \hat{\mathbf{x}}[k] + \hat{d}u[k]
+\end{align}
+By exploiting the diagonal nature of the the eigenvalue matrix, a further co-ordinate transformation can be carried out by taking the diagonal of $\mathbf{\Lambda}$, $\tilde{\mathbf{A}}$ = diag$(\mathbf{\Lambda}) = [\lambda_1, \lambda_2, \dots, \lambda_m]^{\top}$. Utilising this property provides an efficient and succinct method for computation of the reconstructed impulse response and physical modes of the system as an expression of powers of $\tilde{\mathbf{A}}$:
+\begin{align}
+\label{eq:markov-again}
+\begin{cases}
+    \mathbf{\hat{x}}[k + 1] =  \tilde{\mathbf{A}}^{k-1} \mathbf{Q}^{-1} \hat{\mathbf{b}}, \\
+    \tilde{y}[k] =  \hat{\mathbf{c}}^{\top} \mathbf{Q} \tilde{\mathbf{A}}^{k-1}\hat{\mathbf{b}}, \quad k \geq 2
+\end{cases}
+\end{align}
+
+\subsubsection{Diagonalisation of a second-order system}
+\label{sec:second-order}
+
+Consider the standard form of a second-order system harmonic oscillator:
+\begin{align}
+    F(t) = m\ddot{x} + c\dot{x} + kx,
+\end{align}
+where $F(t)$ represents the driving force, $m$ is mass, $\ddot{x}$ is the acceleration, $c$ is a damping constant, $\dot{x}$ is velocity, $k$ is the spring constant, and $x$ is displacement. This can be rewritten in state space form:
+\begin{align}
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}u(t) \\
+y(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}u(t)
+\end{align}
+where:
+\begin{gather}
+\dot{\mathbf{x}} = \begin{bmatrix} \dot{x} \\ \ddot{x} \end{bmatrix}, \quad
+\mathbf{x} = \begin{bmatrix} x \\ \dot{x} \end{bmatrix}, \\
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -\frac{k}{m} & -\frac{c}{m} \end{bmatrix}, \quad
+\mathbf{B} = \begin{bmatrix} 0 \\ \frac{1}{m} \end{bmatrix}, \quad
+\mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}, \quad
+\mathbf{D} = 0.
+\end{gather}
+By solving det$(\mathbf{A} - \lambda \mathbf{I}) = 0$, the characteristic equation is:
+\begin{align}
+\lambda^2 + \frac{c}{m} \lambda + \frac{k}{m} = 0,
+\end{align}
+which yields the eigenvalues
+\begin{align}
+\label{eq:eigs}
+\lambda_i = \frac{-\frac{c}{m} \pm \sqrt{(\frac{c}{m})^2 - 4\frac{k}{m}}}{2}
+\end{align}
+These can be expressed as:
+\begin{align}
+\lambda_i = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^2}
+\end{align}
+where $\omega_n = \sqrt{k/m}$ which is the natural frequency and $\zeta = {c}{2\sqrt{km}}$ which is the damping factor. In the case of $\zeta < 1$, the system is underdamped, producing a decaying sinusoid.
+
+Applying this deduction to the diagonalisation of $\hat{\mathbf{A}}$ from \eqref{eq:coord}, it is evident that the eigendecomposition of any state matrix produces the fundamental frequencies and decay factors of the system, where each eigenvalue corresponds to a mode, where the imaginary component represents the frequency of oscillation, and the real part represents the damping factor.
+
+There is further work to be completed to map the modal parameters to the transfer function form as in \cite{oneill}, which is currently ongoing, and will be included in the final report.

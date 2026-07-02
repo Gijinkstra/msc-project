@@ -1,49 +1,26 @@
-\documentclass[12pt,a4paper]{article}
-
-\usepackage{graphicx} % Required for inserting images.
-\usepackage[margin=25mm]{geometry}
-\parskip 4.2pt  % Sets spacing between paragraphs.
-\renewcommand{\baselinestretch}{1.5}
-\parindent 8.4pt  % Sets leading space for paragraphs.
-% \usepackage[font=sf]{caption} % Changes font of captions.
-
-\usepackage{float}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{siunitx}
-\usepackage{verbatim}
-\usepackage{hyperref} % Required for inserting clickable links.
-\usepackage{listings}
-\usepackage{matlab-prettifier}
-\usepackage{pgfgantt}
-\usepackage{subcaption}
+% !TEX root = main.tex
+\input{chapters/preamble}
 
 \title{Reduced-order modelling of a cello body transfer function: First Report}
 \author{Alastair Dempsey\thanks{
 Repository: \href{https://github.com/Gijinkstra/msc-project}
 {github.com/Gijinkstra/msc-project}} \\
-[1cm]{\small Supervisor: Dr. Maarten Van Walstijn}}
-
-\DeclareCaptionFormat{custom}
-{
-    \textbf{#1#2}\textit{\small #3}
-}
-\captionsetup{format=custom}
+[1cm]{\small Supervisor: Dr.\ Maarten van Walstijn}}
 
 \begin{document}
 \maketitle
 \newpage
 \tableofcontents
+\newpage
 
-\input{build/chapters/01_project-specification.tex}
+\input{chapters/01_project-specification.tex}
 
-\input{build/chapters/02_background.tex}
+\input{chapters/02_background.tex}
 
-\input{build/chapters/03_project-overview.tex}
+\input{chapters/03_project-overview.tex}
 
 \newpage
 \bibliographystyle{IEEEtran}
-\bibliography{build/bibby/references}
+\bibliography{bibby/references}
 
 \end{document}

@@ -180,7 +180,7 @@ amplitudes = [1.5, 0.3, 0.75];
 
 alpha = 50 : 30 : 110;
 
-phases = pi * (0.1 : 0.5 : 1.1);
+phases = 0 : 120 : 240;
 
 M = length(freqs);
 sigs = zeros(M,Ns);
@@ -203,7 +203,7 @@ sig = sig + sign;
 
 opts = eraConfig();
 opts.returnDebug = true;
-svdTolerance = 0.2;
+svdTolerance = 0.02;
 
 % Try changing the number of modes to see how the system reconstructs a
 % subspace of the original signal.

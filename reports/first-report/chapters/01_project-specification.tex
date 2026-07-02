@@ -1,3 +1,4 @@
+% !TEX root = ../main.tex
 \section{Project specification}
 \label{sec:proj-spec}
 The overall aim of this project is to effectively model and emulate the characteristics of an acoustic string instrument body via excitation of the instrument bridge with an impulse-like signal. This can be applied in the following scenarios:
@@ -10,7 +11,6 @@ The overall aim of this project is to effectively model and emulate the characte
  Cello bridge admittance features fewer modes than the equivalent transfer function, thus is much simpler to model.
 
  % NOTE: INSERT FIGURES HERE.
-
  An impulse response of the system can be decomposed into its modal form, which yields a parallel set of 2nd-order IIR filters. This is equivalent to modelling each mode as a decaying harmonic oscillator. The aim of the project is to employ the Eigensystem Realisation Algorithm (ERA) to achieve this decomposition.
 
  This method is potentially useful due to the singular value decomposition stage employed in the algorithm, which will allow a reduction in the order of the modes by removing singular values (and associated left and right singular vectors) from the system.

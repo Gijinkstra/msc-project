@@ -1,0 +1,81 @@
+\begin{ganttchart}[
+    % ── Layout ───────────────────────────────────────────────────────────────
+    hgrid,
+    vgrid={*{6}{draw=none}, dotted},
+    x unit=0.15cm,
+    y unit title=0.7cm,
+    y unit chart=0.9cm,
+    time slot format=isodate,
+    time slot unit=day,
+    % ── Title row (months) ───────────────────────────────────────────────────
+    title/.style={fill=groupblue, draw=none, text=white, font=\bfseries},
+    title label font=\small\bfseries,
+    title height=1,
+    % ── Group bars ───────────────────────────────────────────────────────────
+    group/.style={fill=groupblue, draw=none},
+    group label font=\small\bfseries,
+    group left shift=0,
+    group right shift=0,
+    group top shift=0.4,
+    group height=0.3,
+    group peaks tip position=0,
+    % ── Task bars ────────────────────────────────────────────────────────────
+    bar/.style={fill=barblue, draw=none, rounded corners=2pt},
+    bar label font=\small,
+    bar height=0.6,
+    bar top shift=0.2,
+    % ── Links ────────────────────────────────────────────────────────────────
+    link/.style={-latex, linkgray, thick},
+    % ── Milestone ────────────────────────────────────────────────────────────
+    milestone/.style={fill=orange, draw=none, shape=diamond},
+    milestone label font=\small\itshape,
+]{2026-06-01}{2026-09-14}
+ 
+% ── Month titles ─────────────────────────────────────────────────────────────
+\gantttitlecalendar{month=name} \\
+ 
+% ═════════════════════════════════════════════════════════════════════════════
+% 1. Background Reading
+% ═════════════════════════════════════════════════════════════════════════════
+\ganttgroup{1.\ Background Reading}{2026-06-03}{2026-07-13} \\
+\ganttbar{Literature review}{2026-06-03}{2026-06-22} \\
+\ganttbar{Identify key methods}{2026-06-15}{2026-07-06} \\
+\ganttbar{Summarise findings}{2026-06-29}{2026-07-13} \\
+ 
+% ═════════════════════════════════════════════════════════════════════════════
+% 2. Algorithm Development and Validation
+% ═════════════════════════════════════════════════════════════════════════════
+\ganttgroup{2.\ Algorithm Development \& Validation}{2026-06-08}{2026-08-03} \\
+\ganttbar{Initial algorithm design}{2026-06-08}{2026-07-14} \\
+\ganttbar{Implementation}{2026-06-14}{2026-07-30} \\
+\ganttbar{Validation \& testing}{2026-06-17}{2026-07-30} \\
+ 
+% ═════════════════════════════════════════════════════════════════════════════
+% 3. First report
+% ═════════════════════════════════════════════════════════════════════════════
+\ganttgroup{3.\ First report}{2026-06-25}{2026-07-02} \\
+% ═════════════════════════════════════════════════════════════════════════════
+% 3. Lab Work and Measurements
+% ═════════════════════════════════════════════════════════════════════════════
+\ganttgroup{3.\ Lab Work \& Measurements}{2026-07-27}{2026-08-24} \\
+\ganttbar{Experimental setup}{2026-07-27}{2026-08-03} \\
+\ganttbar{Data collection}{2026-08-03}{2026-08-17} \\
+\ganttbar{Data analysis}{2026-08-10}{2026-08-24} \\
+ 
+% ═════════════════════════════════════════════════════════════════════════════
+% 4. Report Writing
+% ═════════════════════════════════════════════════════════════════════════════
+\ganttgroup{4.\ Report Writing}{2026-08-17}{2026-09-14} \\
+\ganttbar{Draft chapters}{2026-08-17}{2026-08-31} \\
+\ganttbar{Revisions \& editing}{2026-08-31}{2026-09-07} \\
+\ganttbar[bar/.style={fill=donegreen, draw=none, rounded corners=2pt}]
+         {Final submission}{2026-09-07}{2026-09-14} \\
+ 
+% ── Milestone: submission deadline ───────────────────────────────────────────
+\ganttvrule[vrule/.append style={red, thick}]{Today}{2026-07-02}
+\ganttmilestone{Submission deadline}{2026-09-14}
+ 
+\end{ganttchart}
+ 
+\vspace{1em}
+\noindent\small

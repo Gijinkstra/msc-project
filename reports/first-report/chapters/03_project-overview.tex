@@ -1,0 +1,105 @@
+% !TEX root = ../main.tex
+\section{Approach and methodology}
+\label{sec:method}
+Due to logistical constraints, computational portions of the project are carried out prior to any experimental setup and measurements.
+
+The project thus far has been approached with a particular focus on the algorithm implementation and development. Several days were spent reading relevant literature prior to implementing the basic building blocks of the algorithm. Once this had been completed, a review took place to walk through the steps and provide feedback on the relevant steps necessary to build further understanding of the approach.
+Basic implementation was carried out in a live script (.mlx) format with accompanying latex formulae working through the steps and afterwards a full pipeline was created and developed over several weeks. This is outlined in Section \ref{sec:state}. This is currently being tested and developed on simulation signals to ensure appropriate behaviour. Processing can additionally be carried out on an example cello signal to identify what necessary processing must take place prior to being passed through ERA. Carrying out this prerequisite work will ensure all necessary information can be extracted for data analysis at a later stage of the project. \\
+Potential avenues for mode rejection methods are of particular interest in the scope of the project. Several of these that have been identified so far are listed below:
+
+\begin{itemize}
+    \item Singular value spectrum: By examining the singular values of the SVD decomposition of the Hankel matrix, this may provide a visual indicator of the singular value cut-off point between the signal and noise subspace.
+    \item Modal Amplitude Coherence (MAC): Defined in \cite{era} as "The coherence between each modal amplitude history and an ideal one by extrapolating the initial value history to later points using the identified eigenvalue." Overestimating the number of modes in the system may give rise to computational modes (unphysical) in the results, thus the MAC may be used to filter these.
+    \item Modal Phase Collinearity (MPC): MPC checks the consistency of the identified mode shapes with the mode shapes directly from the data. It should be noted here that this is defined for a MIMO system, and further work will need to be carried out to verify its use in the SISO system of this investigation.
+    \item Stabilization Diagrams: These diagrams iterate over the eigensystem realisation for various mode orders to determine which modes are consistent throughout the model. Stable, physical modes will repeatedly appear across all model orders.
+\end{itemize}
+
+Each of these methods can be explored to determine which is most appropriate for the Single Input Single Output (SISO) model, as various parameters require a Multiple Input Single Output, or MIMO system to extract information from multiple channels of measurement.
+
+\section{Schedule}
+\label{sec:schedule}
+% Little bit of verbiage around the Gannt chart here.
+The vast majority of the computational and algorithmic steps will be carried out prior to any measurements being performed, with continuous validation carried out utilising simulated signals.
+\begin{sidewaysfigure}
+    \centering
+    \input{figures/raw/gantt.tex}
+    \caption{Project Gannt chart.}
+    \label{fig:gantt}
+\end{sidewaysfigure}
+
+\section{Current state}
+\label{sec:state}
+A custom Eigensystem Realisation Algorithm pipeline has been implemented in MATLAB, with associated documentation. The current system is implemented for a Single Input Single Output (SISO) system, but can easily be extended for a Multiple Input Multiple Output (MIMO) system if necessary.
+
+The pipeline has been designed to require little input from the end user. Default values for each function argument have been defined to maximise data coverage at the expense of computational complexity with an additional configuration structure that can be passed to adjust the inputs of each relevant subfunction within the pipeline.
+
+For example, the Hankel matrix construction requires a defined number of rows and columns to be specified. If a 1000 sample signal is passed into the pipeline, the number of columns and rows are set by the following formula by default:
+\begin{equation}
+\label{eq:hankel-columns}
+    c = floor \left(\frac{N}{2} - 1\right)
+\end{equation}
+where $c$ represents the number of columns in the Hankel matrix, and $N$ represents the number of samples in the signal. A sample must be removed as the canonical form of the Hankel matrix begins from the second output sample, $y[1]$, and there must be enough data to allow a shifted Hankel matrix construction.
+
+Default options can also be adjusted by editing config fields, allowing for custom cutoffs to be defined.
+For example, the normalised singular value tolerance can be adjusted to a value between 0 and 1 to define a cutoff to separate signal and noise subspace, thus the pipeline will only retain values above the cutoff. In the event that the cutoff results in an odd-value number of singular values in $\Sigma$, the number dimensions of $\Sigma$ are reduced by 1 to ensure an even number of complex conjugate modes are retained.
+
+\subsection{Example simulated waveform}
+An example waveform has been simulated in Figure \ref{fig:example}, with the simulated and ERA recovered modal parameters listed in Table \ref{tab:modal-comparison}. A simple example waveform has been constructed using three distinct decaying sinuosoids, with 5 dB of white noise imposed on the signal. The ERA reconstruction is carried out with a specified mode order of 3.
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of simulated and ERA-recovered modal parameters.}
+\label{tab:modal-comparison}
+\setlength{\tabcolsep}{4pt}  % tighten column spacing
+\begin{tabular}{c S[table-format=1.2] S[table-format=1.2] 
+                  S[table-format=1.4] S[table-format=1.4] 
+                  c c
+                  S[table-format=3.2] S[table-format=3.2]}
+\toprule
+& \multicolumn{2}{c}{Frequency (kHz)} 
+& \multicolumn{2}{c}{Amplitude} 
+& \multicolumn{2}{c}{Phase $(\degree)$}
+& \multicolumn{2}{c}{Decay Rate} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+{Mode} & {Sim.} & {ERA} & {Sim.} & {ERA} & {Sim.} & {ERA} & {Sim.} & {ERA} \\
+\midrule
+1 & 0.5000 & 1.5035 & 1.4630 & 1.5095 & 0   & {--} &  50.00 &  50.99 \\
+2 & 1.0000 & 0.9993 & 0.9254 & 0.9614 & 120 & {--} &  80.00 &  79.45 \\
+3 & 1.5000 & 0.4997 & 0.4759 & 0.5873 & 240 & {--} & 110.00 & 117.14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[scale=0.9]{figures/out/impulse-response.pdf}
+\caption{\textnormal{\textbf{(a)}} Composite impulse with an SNR of 5 dB and clean impulse, \textnormal{\textbf{(b)}} Reconstructed clean impulse after ERA with a mode order of 3, \textnormal{\textbf{(c)}} Constituent modes of the impulse signal, \textnormal{\textbf{(d)}} Reconstructed constituent modes.}
+\label{fig:example}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=0.7]{figures/out/decay-rates.pdf}
+\caption{Comparison of decay rates for simulated modes and ERA reconstructed modes.}
+\label{fig:decay-rates}
+\end{figure}
+Note that in the amplitude reported, the simulated signals are constructed using maximum amplitudes of 1.5, 1.0 and 0.5 respectively. The phase has also not been reported, as work is still ongoing to recover this from the state space representation. The amplitude reported is the maximum amplitude of the decaying sinusoid. The normalised mean square error between the clean impulse and the reconstruction of the impulse response is also 0.0061, demonstrating a good level of signal recovery even in the presence of a high degree of noise.
+
+Decay rates are in good agreement for the 0.5 kHz and 1 kHz modes, with some variation in the 1.5kHz mode. It has been noted that the ERA offers reasonably good performance in simulations in reconstructing the impulse response and associated Frequency Response Function (FRF), but may vary slightly in the reported frequncies and decay rates. This is especially prevalent in systems with a much higher number of modes and greater degrees of noise.
+
+\section{Planned work}
+\label{sec:plan}
+Further work can be divided into relevant categories, with a particular focus on algorithm development.
+% More words surrounding the planned procedure. Build up further methods for identifying true modes in the ERA, comparison with FDM.
+\subsection{Background reading}
+A more comprehensive view is required of the current landscape of modal analysis with its application to stringed instrument bridge impulse responses. Additional reading must be carried out into the Filter Diagonalisation Method (FDM), Multiple Signal Classification (MUSIC) and Estimation of Signal Parameters via Rotational Invariance Techniques (ESPRIT) to gain further understanding of similar relevant techniques applied in the signal processing field.
+
+\subsection{Algorithm Development}
+Algorithm development on the ERA could be extended further to aid in the identification of true modes of analysed signals. It has been noted that overestimating the number of modes in a system gives rise to computational modes, modes in which they are almost certainly not physical due to their extremely small amplitude ($<10^{-7}$) and extremely quick decay.
+Despite the implementation of some filters for unphysical behaviour, such as 0 frequency modes and modes with damping factors $>0.99$, there are no amplitude limits implemented due to unfamiliarity with the exact behvaiour of the cello impulse response as all validation thus far has been carried out on simpler simulated signals.
+Further reading is required on MAC, EMAC, MPC and CMI methods to determine relevance in the SISO case and preliminary testing can be carried out for further enhancement of mode identification. Further investigations can also be carried out into the separation of the noise subspace from the signal subspace in the singular value decomposition stage. The primary goal of utilising ERA is to separate out modes associated with the noise in the system with less manual intervention in comparison to the FDM method, thus should be a central point of the investigation.
+As explored by Ó Néill \cite{oneill}, the frequency, amplitude, phase and decay rate can be utilised to build the coefficients necessary for each second order IIR filter and offers direct control over the filter parameters. The final stage will be direct comparison with the FDM method to determine if the modal density can be retained whilst automating spurious mode rejection and speed up computation.
+
+\subsection{Lab work}
+As lab-based activities are not due to begin until the end of July/beginning of August, this provides ample runway to engage in further reading relevant to the experimental techniques associated with the excitation of the instrument bridge via an impact hammer method. Thus far, a cello\footnote{Provided by Dr. Miguel Ortiz} with a stand, and an impact hammer\footnote{Provided by Dr. Maarten van Walstijn} have been provided to carry out measurement by utilising a contact micorphone attachted to the side of the bridge (opposite side to the impact hammer).
+Care must be taken to provide enough energy to excite all modes of the bridge system whilst keeping the imparted force small enough such that non-linearities are not introduced.
