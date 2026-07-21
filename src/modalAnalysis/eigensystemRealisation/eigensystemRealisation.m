@@ -1,6 +1,6 @@
-function [outputSignal, frequencies, dampingFactors, modes, ...
-    varargout] = eigensystemRealisation(impulseResponse, svdTolerance, ...
-    fs, opts)
+function [outputSignal, frequencies, dampingFactors, amplitudes, ...
+    phases, modes, varargout] = eigensystemRealisation(impulseResponse, ...
+    svdTolerance, fs, opts)
 % EIGENSYSTEMREALISATION  Identifies modal parameters via the Eigensystem
 %                         Realisation Algorithm.
 %
@@ -93,6 +93,7 @@ defaults.hankelSignalIndex  = 2;
 defaults.nRows              = [];
 defaults.nColumns           = [];
 
+defaults.residueScaling        = false;
 defaults.filterUnstable     = true;
 defaults.filterNegativeDamp = true;
 defaults.filterNegativeFreq = true;
@@ -172,8 +173,9 @@ hankelMatrixSignal = impulseResponse(hankelIndex : end);
     shiftedHankelMatrix, nRows, nColumns, firstSample, opts);
 
 %%% Recover frequencies, damping factor and modes.
-[frequencies, dampingFactors, modes, decayRates, At, Bt, Ct, ...
-    modalDebug] = extractModalParameters(A, B, C, timeStep, opts);
+[frequencies, dampingFactors, amplitudes, phases, modes, decayRates, ...
+    At, Bt, Ct, modalDebug] = extractModalParameters(A, B, C, timeStep, ...
+    opts);
 
 %%% Modal states and output signal.
 [outputSignal, modalImpulses, impulseDebug] = ...

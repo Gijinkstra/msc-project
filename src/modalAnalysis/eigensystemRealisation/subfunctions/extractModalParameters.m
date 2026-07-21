@@ -1,6 +1,7 @@
 function [filteredFrequencies, filteredDampingFactors, ...
-    filteredModes, filteredDecayRates, filteredAt, filteredBt, ...
-    filteredCt, varargout] = extractModalParameters(A, B, C, timeStep, opts)
+    filteredAmplitudes, filteredPhi, filteredModes, filteredDecayRates, ...
+    filteredAt, filteredBt, filteredCt, varargout] = ...
+    extractModalParameters(A, B, C, timeStep, opts)
 % EXTRACTMODALPARAMETERS  Extracts modal filtered parameters and  filtered
 %                         modal matrices from ERA state space matrices.
 %
@@ -9,34 +10,6 @@ function [filteredFrequencies, filteredDampingFactors, ...
 %   shapes from the discrete time state transition matrix A, input matrix
 %   B, and output matrix C identified by ERA.
 %
-%   Discrete time eigenvalues are mapped to continuous time via:
-%       s_r = log(lambda_r) / timeStep
-%
-%   Modal parameters are extracted as:
-%       frequency  = |s_r| / (2*pi)        [Hz]
-%       decayRate  = -real(s_r)            [Nepers/s]
-%       damping    = -real(s_r) / |s_r|    [non-dimensional]
-%       mode shape = C * eigenvectors      [observed at output]
-%
-%   The coordinate transformation to modal form diagonalises A:
-%       At = psi^{-1} * A * psi = Lambda  [diagonal eigenvalue matrix]
-%       Bt = psi^{-1} * B                 [modal input matrix]
-%       Ct = C * psi                      [modal output matrix / mode shapes]
-%
-%   Two-stage filtering is applied:
-%
-%   Stage 1 — Non-physical mode removal (applied to all outputs):
-%     - Unstable poles (|lambda_d| >= 1)
-%     - Negative damping (growing oscillations)
-%     - Overdamped modes (damping > threshold)
-%     - Zero-frequency modes
-%
-%   Stage 2 — Conjugate pair reduction (applied only to parameter outputs):
-%     - Negative imaginary part eigenvalues removed
-%     - Parameters become 1 per physical mode (not 2)
-%
-%   The modal matrices At, Bt, Ct retain both halves of each conjugate
-%   pair after stage 1 filtering.
 % INPUTS:
 %   A        - [double, n x n]  Discrete time state transition matrix.
 %   B        - [double, n x 1]  Input vector.
@@ -99,12 +72,6 @@ function [filteredFrequencies, filteredDampingFactors, ...
 %                               .unstable, .negativeFreq, .negativeDamp,
 %                               .overdamped, .zeroFreq
 %
-%   The principal branch of the complex logarithm is used in the
-%   discrete-to-continuous conversion. This maps frequencies above the
-%   Nyquist boundary into aliased estimates. For ERA on impulse responses
-%   sampled above Nyquist this is not an issue, but it is worth noting
-%   for non-standard applications.
-%
 % REFERENCES:
 %   [1] Juang, J.-N. & Pappa, R.S. (1985). An eigensystem realization
 %       algorithm for modal parameter identification and model reduction.
@@ -132,12 +99,27 @@ assert(size(C, 2) == n, ...
     'extractModalParameters:CDimensionMismatch', ...
     'C columns must match A dimension.');
 
+if isfield(opts, 'residueScaling')
+
+    residueScalingFlag = opts.residueScaling;
+
+else
+
+    residueScalingFlag = false;
+
+end
+
 %% Constants
 TWO_PI = 2 * pi;
 
+% Necessary pole scaling factor to recover the proper phase and amplitudes.
+POLE_SCALING_FACTOR = opts.hankelSignalIndex - 1;
+
+% Used to scale amplitudes for complex conjugate pairs.
+AMPLTIUDE_SCALING_FACTOR = 2;
+
 %% Main code
-% Eigenvalues and eigenvectors of a linear transformation of A are equal to
-% the eigenvalues and eigenvectors of A.
+% Eigenvalues and eigenvectors of A.
 [psi, At] = eig(A);
 eigenValues = diag(At);
 
@@ -147,8 +129,6 @@ Bt = psi \ B;
 Ct = C * psi;
 
 % Discrete to continuous time conversion
-% lambda_d = exp(-lambda_c*timeStep);
-% lambda_c = log(lambda_d) / timeStep
 continuousEigenValues = log(eigenValues) ./ timeStep;
 
 naturalFrequencies = abs(continuousEigenValues);
@@ -167,6 +147,29 @@ dampingFactors = -real(continuousEigenValues) ./ ...
 % consistency of output dimensions.
 modes = Ct.';
 
+% Determine the amplitude and phase of the mode via the residues of the
+% signal.
+residues = Ct.' .* Bt;
+
+
+if residueScalingFlag
+    % Divide through by a multiple of the pole, depending on Hankel matrix
+    % index.
+    correctedResidues = residues ./ ...
+        (POLE_SCALING_FACTOR .* eigenValues);
+
+else
+
+    correctedResidues = residues;
+
+end
+
+% Extract the phase and the magnitude of the residues.
+phi = angle(correctedResidues);
+
+% Amplitude is doubled due to complex conjugate.
+amplitudes =  AMPLTIUDE_SCALING_FACTOR * abs(correctedResidues);
+
 %% Stage 1 — Non-conjugate filters (applied to both matrices and parameters)
 stage1Mask = true(size(eigenValues));
 
@@ -174,7 +177,6 @@ stage1Mask = true(size(eigenValues));
 unstableMask   = false(size(eigenValues));
 negDampMask    = false(size(eigenValues));
 overdampedMask = false(size(eigenValues));
-zeroFreqMask   = false(size(eigenValues));
 
 if opts.filterUnstable
     unstableMask = (abs(eigenValues) >= 1);
@@ -213,6 +215,8 @@ filteredFrequencies    = frequencies(stage2Mask);
 filteredDecayRates     = decayRates(stage2Mask);
 filteredDampingFactors = dampingFactors(stage2Mask);
 filteredModes          = modes(stage2Mask);
+filteredPhi            = phi(stage2Mask);
+filteredAmplitudes     = amplitudes(stage2Mask);
 
 %% Optional debug info.
 if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
@@ -224,6 +228,7 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     diagnostics.retainedCount          = sum(stage2Mask);
     diagnostics.filteredCount          = sum(~stage2Mask);
     diagnostics.filteredOutEigenvalues = eigenValues(~stage2Mask);
+    diagnostics.residues               = residues;
     diagnostics.allFrequencies         = frequencies;
     diagnostics.allDecayRates          = decayRates;
     diagnostics.allDampingFactors      = dampingFactors;

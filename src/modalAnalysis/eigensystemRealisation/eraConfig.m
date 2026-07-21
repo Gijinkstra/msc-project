@@ -43,6 +43,9 @@ opts.returnDebug          = false;
 % Do not change unless the ERA signal indexing convention changes.
 opts.hankelSignalIndex    = 2;
 
+opts.nRows = [];
+opts.nColumns = [];
+
 %% -----------------------------------------------------------------------
 %  SVD TRUNCATION
 %  -----------------------------------------------------------------------
@@ -56,6 +59,8 @@ opts.svdTolerance = 0.01;
 %% -----------------------------------------------------------------------
 %  MODAL PARAMETER EXTRACTION
 %  -----------------------------------------------------------------------
+% Scale the residues by a factor of the poles.
+opts.residueScaling       = true;
 % Remove poles on or outside the unit circle (unstable modes).
 opts.filterUnstable       = true;
 
@@ -114,7 +119,5 @@ validateattributes(opts.filterNegativeFreq, {'logical', 'numeric'}, ...
 validateattributes(opts.dampingThreshold, {'double'}, ...
     {'scalar', 'real', 'positive', 'finite', '<=', 1}, ...
     'eraConfig', 'opts.dampingThreshold');
-
-% --- Impulse response reconstruction ---
 
 end
