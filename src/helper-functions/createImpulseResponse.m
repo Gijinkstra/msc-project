@@ -1,8 +1,9 @@
-function [allSignals, outputSignal, debug] = ...
-    createImpulseResponse(nSignals, frequencies, amplitudes, phases, ...
-    alpha, timeVector, SNR, debugFlag)
-% Vectorised method for creating impulse responses. Will generate random
-% amplitudes, phases, and decay rates if input arguments are empty.
+function [allSignals, outputSignal, timeVector, debug] = ...
+    createImpulseResponse(nSignals, nSamples, fs, options)
+% createImpulseResponse Vectorised method for creating impulse responses. 
+% Will generate uniformly distributed random frequencies, amplitudes, and 
+% decay rates if input arguments are empty. Phase will be set at either 0
+% or pi / 2.
 
 % Frequency [Hz]
 % Amplitudes [1]
@@ -10,76 +11,132 @@ function [allSignals, outputSignal, debug] = ...
 % Alpha [Nepers] {s^-1}
 % Time vector [s]
 
-if isempty(nSignals) && isempty(frequencies)
-
-    error('Input either a number of signals, or specify frequencies')
-
+%% Input checking.
+arguments
+    nSignals   (1, 1) double {mustBeInteger, mustBePositive, mustBeFinite}
+    nSamples   (1, 1) double {mustBeInteger, mustBePositive, mustBeFinite}
+    fs         (1, 1) double {mustBePositive, mustBeFinite}
+    options.Frequency  (:, 1) double {mustBeReal, mustBeFinite, ...
+                             mustBeNonnegative, ...
+                             mustBeNumelOrEmpty(options.Frequency, ...
+                             nSignals)} = []
+    options.Amplitude  (:, 1) double {mustBeReal, mustBeFinite, ...
+                             mustBeNumelOrEmpty(options.Amplitude, ...
+                             nSignals)} = []
+    options.Phase      (:, 1) double {mustBeReal, mustBeFinite, ...
+                             mustBeNumelOrEmpty(options.Phase, ...
+                             nSignals)} = []
+    options.Alpha      (:, 1) double {mustBeReal, mustBeFinite, ...
+                       mustBeNonnegative, ...
+                       mustBeNumelOrEmpty(options.Alpha, nSignals)} = []
+    options.SNR        (1 ,1) double {mustBeReal, mustBeFinite} = 0
+    options.Debug      (1, 1) logical = false
 end
 
-% When amplitude is empty, create a random amplitude between 0.5 and 1.
-if isempty(amplitudes)
+%% Defaults.
 
-    amplitudes = 0.5 + (1 - 0.5) .* rand(nSignals, 1);
+% Note: come back and make these array input options. This is fine for now.
+MIN_FREQUENCY = 100;
+MAX_FREQUENCY = 2500;
 
+MIN_AMPLITUDE = 0.5;
+MAX_AMPLITUDE = 1;
+
+MAX_PHASE = pi / 2;
+PHASE_LIMIT = 0.5;
+
+MIN_ALPHA = 20;
+MAX_ALPHA = 100;
+
+DB_SCALING = 10;
+POWER_FACTOR = 10;
+
+%% Random signal parameter generation.
+
+% Reassign for neatness.
+frequency = options.Frequency;
+amplitude = options.Amplitude;
+phase = options.Phase;
+alpha = options.Alpha;
+SNR = options.SNR;
+debugFlag = options.Debug;
+
+% Randomly generate parameters when not provided.
+if isempty(frequency)
+    frequency = scaledRand(MIN_FREQUENCY, MAX_FREQUENCY, nSignals);
 end
 
-% When phase is empty, create a random array of either 0 or pi/2 phase.
-if isempty(phases)
-
-    phases = rand(nSignals, 1);
-    phases(phases >= 0.5) = pi / 2;
-    phases(phases < 0.5) = 0;
-   
+if isempty(amplitude)
+    amplitude = scaledRand(MIN_AMPLITUDE, MAX_AMPLITUDE, nSignals);
 end
 
-% When empty create a decay value between 20 and 100.
+if isempty(phase)
+    phase = (rand(nSignals, 1) >= PHASE_LIMIT) * MAX_PHASE;
+end
+
 if isempty(alpha)
-
-    alpha = 20 + (100 - 20) .* rand(nSignals, 1);
-
+    alpha = scaledRand(MIN_ALPHA, MAX_ALPHA, nSignals);
 end
 
-if isempty(debugFlag)
+%% Build signals.
 
-    debugFlag = false;
+% Time vector must be a row to align with column vector parameters above.
+timeVector = (0 : nSamples - 1) / fs;
 
-end
-
-frequencies = frequencies(:);
-alpha = alpha(:);
-amplitudes = amplitudes(:);
-phases = phases(:);
-
-nSamples = numel(timeVector);
-allPhases = repmat(phases, 1, nSamples);
-
-allSignals = amplitudes .* exp(-alpha .* timeVector) .* ...
-    sin((2 * pi .* frequencies .* timeVector) + allPhases);
+allSignals = amplitude .* exp(-alpha .* timeVector) .* ...
+    sin((2 * pi .* frequency .* timeVector) + phase);
 
 outputSignal = sum(allSignals, 1);
 
-if ~isempty(SNR)
+% Add gaussian noise.
+signalEnergy = sum(outputSignal .^ 2);
+targetEnergy = signalEnergy / (DB_SCALING ^ (SNR / POWER_FACTOR));
 
-    Es = sum(outputSignal .^ 2);
-    En = Es / (10 ^ (SNR / 10));
-    sign0 = 1 - 2 * rand(1, nSamples);
-    En0 = sum(sign0 .^ 2);
-    an = sqrt(En / En0);
-    sign = an * sign0;
-    outputSignal = outputSignal + sign;
+noiseSignal = randn(1, nSamples);
+noiseEnergy = sum(noiseSignal .^ 2);
+noiseAmplitudeScaling = sqrt(targetEnergy / noiseEnergy);
+finalNoiseSignal = noiseAmplitudeScaling * noiseSignal;
+outputSignal = outputSignal + finalNoiseSignal;
+
+%% Debug info.
+debug = struct();
+debug.frequency     = [];
+debug.amplitude     = [];
+debug.phase         = [];
+debug.alpha         = [];
+debug.signalEnergy  = [];
+debug.targetEnergy  = [];
+debug.noiseEnergy   = [];
+debug.noiseSignal   = [];
+
+if debugFlag
+    % In the event any of the parameters are randomly created, assign to
+    % the debug struct to inspect.
+    debug.frequency     = frequency;
+    debug.amplitude     = amplitude;
+    debug.phase         = phase;
+    debug.alpha         = alpha;
+    debug.signalEnergy  = signalEnergy;
+    debug.targetEnergy  = targetEnergy;
+    debug.noiseEnergy   = noiseEnergy;
+    debug.noiseSignal   = finalNoiseSignal;
 
 end
 
-%% Debug info.
-if debugFlag
+end
 
-    debug = struct();
-    
-    modeIndex = 1 : nSignals;
+%% Subfunctions.
+function output = scaledRand(lowerLimit, upperLimit, nElements)
 
-    debug.table = table(modeIndex', frequencies, alpha, ...
-        amplitudes, phases, 'VariableNames', {'Mode index', ...
-        'Frequency (Hz)', 'Decay rate (s^-1)', 'Amplitude (1)', ...
-        'Phase (rads)'});
+output = lowerLimit + (upperLimit - lowerLimit) .* rand(nElements, 1);
+
+end
+
+function mustBeNumelOrEmpty(value, n)
+
+if ~isempty(value) && numel(value) ~= n
+    error('createImpulseResponse:wrongNumel', ...
+        'Must be empty or have %d elements.', n);
+end
 
 end

@@ -12,22 +12,19 @@ clc
 % String Instruments".
 frequencies = [57, 102, 144, 170, 195, 203, 219, 277, 302];
 nSignals = length(frequencies);
-phases = [];
-amplitudes = [];
-dampingFactors = [];
 
 fs = 44.1E3;
 totalTime = 0.5;
 timeStep = 1 / fs;
 nSamples = totalTime / timeStep - 1;
-timeVector = (0 : nSamples) * timeStep;
 freqStep = fs / nSamples;
 frequencyAxis = (0 : (nSamples / 2)) * freqStep;
 
-SNR = 0; % [dB]
+SNR = -3; % [dB]
 
-[modes, signal, debugImpulse] = createImpulseResponse(nSignals, frequencies, amplitudes, ...
-    phases, dampingFactors, timeVector, SNR, true);
+[modes, signal, timeVector, debugImpulse] = ...
+    createImpulseResponse(nSignals, nSamples, fs, ...
+    Frequency=frequencies, SNR=SNR, Debug=true);
 
 frequencyResponse = fft(signal);
 P2 = abs(frequencyResponse / nSamples);
@@ -82,9 +79,9 @@ svKurt = (normSv(1 : end - 1) - normSv(2 : end)) ./ normSv(2 : end);
 % Convert to sinusoidal phase.
 phase_era = phase_era + pi/2;
 
-[eraModes, eraReconstructedImpulse] = ...
-    createImpulseResponse(length(f_era), f_era, amp_era, phase_era, ...
-    debug.Modal.decayRates, timeVector, [], []);
+[eraModes, eraReconstructedImpulse, timeVector] = ...
+    createImpulseResponse(length(f_era), nSamples, fs, Frequency=f_era, ...
+    Amplitude=amp_era, Phase=phase_era, Alpha=debug.Modal.decayRates);
 
 figure
 tiledlayout(2, 1)
@@ -104,9 +101,10 @@ plot(normSv, 'k.', 'DisplayName', 'Singular values')
 plot(retainedSv, 'or', 'DisplayName', 'Singular values > 3 * Median Absolute Deviation')
 ylabel('Normalised singular values')
 xlabel('Singular value index')
-title("Normalised singular values of cellow impulse response - SNR: " + string(SNR))
+title("Normalised singular values of cello impulse response - SNR: " + string(SNR))
 xlim([0 100])
 legend
+text(0.2, 0.9, "Number of retained MAD modes: " + string(ceil(length(retainedSv) / 2)), 'Units', 'normalized')
 
 figure
 plot(diff(normSv), 'ko', 'LineWidth', 1.3)
