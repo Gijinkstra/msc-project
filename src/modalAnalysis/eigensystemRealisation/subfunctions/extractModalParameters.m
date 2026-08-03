@@ -193,8 +193,18 @@ if opts.dampingThreshold
     stage1Mask     = stage1Mask & ~overdampedMask;
 end
 
+% Build the full mask for the state matrices.
 zeroFreqMask = (frequencies <= 0);
 stage1Mask   = stage1Mask & ~zeroFreqMask;
+
+% Reshape the mask into a 2*n column vector to check both conjugate pairs
+% are removed, then rebuild the original column vector. Note that this
+% assumes the eigenvalue decomposition returns the complex conjugate pairs
+% in adjacent elements. This should generally be the case for real
+% matrices.
+conjugateMask = reshape(stage1Mask, 2, []);
+conjugateRetained = all(conjugateMask, 1);
+stage1Mask = reshape(repmat(conjugateRetained, 2, 1), [], 1);
 
 %% Apply Stage 1 filter to matrices — preserve conjugate pairs
 filteredAt = At(stage1Mask, stage1Mask);

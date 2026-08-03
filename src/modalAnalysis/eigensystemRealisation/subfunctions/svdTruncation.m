@@ -126,11 +126,6 @@ if svdTolerance < SVD_TOLERANCE_CUTOFF
 
     nModesRequested = indexToKeep(end);
 
-    % Retain an even number of modes.
-    if mod(nModesRequested, 2)
-        nModesRequested = nModesRequested - 1;   
-    end
-
 else
     
     toleranceMode = SVD_TOLERANCE_FLAG{2};
@@ -138,8 +133,15 @@ else
 
 end
 
+% Scale the number of modes to include complex conjugate pairs for
+% svdTolerance > 1.
 if strcmp(toleranceMode, SVD_TOLERANCE_FLAG{2})
     nModesRequested = nModesRequested * MODE_SCALING_FACTOR;
+end
+
+% Retain an even number of modes.
+if mod(nModesRequested, 2)
+    nModesRequested = nModesRequested - 1;   
 end
 
 % Ensure the number of requested modes has a smaller dimension than the
