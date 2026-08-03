@@ -89,14 +89,16 @@ allSignals = amplitude .* exp(-alpha .* timeVector) .* ...
 outputSignal = sum(allSignals, 1);
 
 % Add gaussian noise.
-signalEnergy = sum(outputSignal .^ 2);
-targetEnergy = signalEnergy / (DB_SCALING ^ (SNR / POWER_FACTOR));
-
-noiseSignal = randn(1, nSamples);
-noiseEnergy = sum(noiseSignal .^ 2);
-noiseAmplitudeScaling = sqrt(targetEnergy / noiseEnergy);
-finalNoiseSignal = noiseAmplitudeScaling * noiseSignal;
-outputSignal = outputSignal + finalNoiseSignal;
+if SNR ~= 0
+    signalEnergy = sum(outputSignal .^ 2);
+    targetEnergy = signalEnergy / (DB_SCALING ^ (SNR / POWER_FACTOR));
+    
+    noiseSignal = randn(1, nSamples);
+    noiseEnergy = sum(noiseSignal .^ 2);
+    noiseAmplitudeScaling = sqrt(targetEnergy / noiseEnergy);
+    finalNoiseSignal = noiseAmplitudeScaling * noiseSignal;
+    outputSignal = outputSignal + finalNoiseSignal;
+end
 
 %% Debug info.
 debug = struct();
