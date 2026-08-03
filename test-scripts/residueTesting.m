@@ -126,57 +126,179 @@ testPhase = rad2deg(angle(newResi) + pi / 2);
 
 testAmp = 2 * abs(newResi);
 
-%% Mode Similarity Index
+%% Test with factor of d built-in
 
-H1 = debug.Hankel.shiftedHankelMatrix;
-nColumns = debug.Hankel.nColumns;
-nRows = debug.Hankel.nRows;
-m = svdTolerance;
+d = sig(1);
 
-[U1, S1, V1] = svd(H1);
+b0new = d;
 
-Um1 = U1(:, 1 : m);
-Sm1 = S1(1 : m, 1 : m);
-Vm1 = V1(:, 1 : m);
+b1new = (2 * real(debug.Modal.Ct(1) * debug.Modal.Bt(1))) - 2*d*real(debug.Modal.At(1, 1));
 
-columnBasisVector = zeros(nColumns, 1);
-columnBasisVector(1) = 1;
+b2new = d * abs(debug.Modal.At(1, 1))^2 - 2*real(resi * debug.Modal.At(2, 2));
 
-rowBasisVector = zeros(nRows, 1);
-rowBasisVector(1) = 1;
+a0new = 1;
 
-% Half power and inverse matrices. Transform to avoid computing over the
-% entire S matrix. Only saves time for large S (assumed).
-singularValues  = diag(Sm1);
-sHalf = diag(sqrt(singularValues));       
-sHalfInv = diag(1 ./ sqrt(singularValues)); 
+a1new = -2*real(debug.Modal.At(1, 1));
 
-% Eq. (22-24).
-A1 = sHalfInv * Um1' * H1 * Vm1 * sHalfInv;
+a2new = abs(debug.Modal.At(1, 1))^2;
 
-[psi, lambda] = eig(A1);
+bnew = [b0new b1new b2new];
+anew = [a0new a1new a2new];
 
-% Discrete to continuous time conversion
-continuousEigenValues = log(lambda) ./ dt;
-
-naturalFrequencies = abs(continuousEigenValues);
-
-% Extract frequencies from the eigenvalues.
-shiftedFrequencies = naturalFrequencies ./ (2*pi);
-
-% Extract the decay rate.
-shiftedDecayRates = -real(continuousEigenValues);
-
-% Extract damping factor from the eigenvalues.
-shiftedDampingFactors = -real(continuousEigenValues) ./ ...
-    naturalFrequencies;
+test3 = filter(bnew, anew, inputSignal);
 
 figure
-plot(frequencies, dampingFactors, 'o', 'LineWidth', 1.4, ...
-    'DisplayName', 'Standard frequencies')
+plot(sig, 'LineWidth', 2)
 hold on
-plot(shiftedFrequencies, shiftedDampingFactors, 'gx', 'LineWidth', 1.4, ...
-    'DisplayName', 'Shifted Frequencies')
-ylabel('Damping factor')
-xlabel('Frequency')
+plot(test3, 'r--', 'LineWidth', 1.5)
+
+%% Test with higher order of modes.
+
+fs = 1000;
+time = 2;
+nSamples = (time * fs);
+freqs = [2 5 10];
+nSignals = length(freqs);
+alpha = [5 5 5];
+
+opts = eraConfig();
+opts.returnDebug = true;
+% opts.residueScaling = true;
+
+[allSignals, outputSignal, timeVector, debug] = ...
+    createImpulseResponse(nSignals, nSamples, fs, Frequency=freqs, Alpha=alpha, SNR=0);
+
+svdTolerance = 3;
+
+[eraSignal, frequencies, amps, phi, decayFactors, modes, debugEra] = ...
+    eigensystemRealisation(outputSignal, svdTolerance, fs, opts);
+
+figure
+tiledlayout
+nexttile
+plot(timeVector, outputSignal, 'LineWidth', 1.5, 'DisplayName', 'Original Signal')
+hold on
+plot(timeVector, eraSignal, '--k', 'LineWidth', 1.5, 'DisplayName', 'ERA Signal')
+legend("AutoUpdate", "on")
+
+residues = debugEra.Modal.residues;
+poles = diag(debugEra.Modal.At);
+
+nFilters = length(poles) / 2;
+filterIndex = 1 : 0.5 : nFilters;
+d = outputSignal(1);
+
+b = zeros(nFilters, 3);
+a = zeros(nFilters, 3);
+modes = zeros(nFilters, nSamples);
+inputSignal = [1 zeros(1, nSamples - 1)];
+
+% Try two alternative methods - 1. factor d into the first modes'
+% difference equation.
+for i = 1 : 2 : length(poles)
+
+    thisFilter = filterIndex(i);
+
+    if i == 1
+    
+        b0i = d;
+        b1i = (2 * real(residues(i))) - 2*d*real(poles(i));
+        b2i = d * abs(poles(i))^2 - 2*real(residues(i) * poles(i + 1));
+
+    else
+
+        b0i = 0;
+        b1i = 2 * real(residues(i));
+        b2i = -2 * real(residues(i) * poles(i + 1));
+
+    end
+
+    a0new = 1;
+    a1new = -2 * real(poles(i));    
+    a2new = abs(poles(i)) ^ 2;
+
+    thisB = [b0i, b1i, b2i];
+    thisA = [a0new, a1new, a2new];
+
+    b(thisFilter, :) = thisB;
+    a(thisFilter, :) = thisA;
+    modes(thisFilter, :) = filter(thisB, thisA, inputSignal);
+
+end
+
+% sosFilters = tf2sos(b, a, nFilters);
+filterSignalOut = modes(1, :) + modes(2, :) + modes(3, :);
+
+nexttile
+plot(timeVector, eraSignal, 'k', 'LineWidth', 1.5, 'DisplayName', 'ERA signal')
+hold on
+plot(timeVector, filterSignalOut, 'r--', 'LineWidth', 1.5, 'DisplayName', 'Filter sections signal')
+legend
+
+[zb, za] = residue(residues, poles, d);
+
+zeros = roots(zb);
+poles_check = roots(za);
+
+nexttile
+zplane(zeros, poles_check)
+
+%% Equal factor of d for all filters.
+
+bc = zeros(nFilters, 3);
+ac = zeros(nFilters, 3);
+modes = zeros(nFilters, nSamples);
+inputSignal = [1 zeros(1, nSamples - 1)];
+
+% d = d / nFilters;
+
+% Try two alternative methods - 1. factor d into all modes.
+for i = 1 : 2 : length(poles)
+
+    thisFilter = filterIndex(i);
+    
+    b0i = d;
+    b1i = (2 * real(residues(i))) - 2*d*real(poles(i));
+    b2i = d * abs(poles(i))^2 - 2*real(residues(i) * poles(i + 1));
+
+    a0new = 1;
+    a1new = -2 * real(poles(i));    
+    a2new = abs(poles(i)) ^ 2;
+
+    thisB = [b0i, b1i, b2i];
+    thisA = [a0new, a1new, a2new];
+
+    bc(thisFilter, :) = thisB;
+    ac(thisFilter, :) = thisA;
+    modes(thisFilter, :) = filter(thisB, thisA, inputSignal);
+
+end
+
+% sosFilters = tf2sos(b, a, nFilters);
+filterSignalOut = modes(1, :) + modes(2, :) + modes(3, :);
+
+nexttile
+plot(timeVector, eraSignal, 'k', 'LineWidth', 1.5, 'DisplayName', 'ERA signal')
+hold on
+plot(timeVector, filterSignalOut, 'r--', 'LineWidth', 1.5, 'DisplayName', 'Filter sections signal')
+legend
+
+[b, a] = residue(residues, poles, d);
+
+zeros = roots(bc);
+poles_check = roots(ac);
+
+nexttile
+zplane(zeros, poles_check)
+
+%% 
+
+[btest, atest] = buildFilterCoefficients(poles, residues, d);
+
+outputSignal = parallelFilter(btest, atest, inputSignal);
+
+nexttile
+plot(timeVector, eraSignal, 'k', 'LineWidth', 1.5, 'DisplayName', 'ERA signal')
+hold on
+plot(timeVector, outputSignal, 'r--', 'LineWidth', 1.5, 'DisplayName', 'Filter sections signal')
 legend

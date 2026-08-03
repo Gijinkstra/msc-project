@@ -20,7 +20,7 @@ nSamples = totalTime / timeStep - 1;
 freqStep = fs / nSamples;
 frequencyAxis = (0 : (nSamples / 2)) * freqStep;
 
-SNR = -3; % [dB]
+SNR = 5; % [dB]
 
 [modes, signal, timeVector, debugImpulse] = ...
     createImpulseResponse(nSignals, nSamples, fs, ...
@@ -65,6 +65,8 @@ endIndex = 6000;
 [eraImpulse, f_era, zeta_era, amp_era, phase_era, modes_era, debug] = ...
     eigensystemRealisation(signal(1 : endIndex), svdTolerance, fs, opts);
 
+%%
+
 sv = debug.SVD.singularValues;
 normSv = sv ./ sv(1);
 diffSv = diff(normSv);
@@ -75,6 +77,8 @@ cutoff = 2.858 * medianSv;
 retainedSv = normSv(normSv > cutoff);
 
 svKurt = (normSv(1 : end - 1) - normSv(2 : end)) ./ normSv(2 : end);
+
+
 
 % Convert to sinusoidal phase.
 phase_era = phase_era + pi/2;
