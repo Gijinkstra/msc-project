@@ -182,7 +182,7 @@ plot(timeVector, eraSignal, '--k', 'LineWidth', 1.5, 'DisplayName', 'ERA Signal'
 legend("AutoUpdate", "on")
 
 residues = debugEra.Modal.residues;
-poles = diag(debugEra.Modal.At);
+poles = debugEra.Modal.poles;
 
 nFilters = length(poles) / 2;
 filterIndex = 1 : 0.5 : nFilters;
@@ -237,11 +237,20 @@ legend
 
 [zb, za] = residue(residues, poles, d);
 
-zeros = roots(zb);
+zrs = roots(zb);
 poles_check = roots(za);
 
 nexttile
 zplane(zeros, poles_check)
+
+[B, A] = buildFilterCoefficients(poles, residues, outputSignal(1));
+parallelFilterSignal = parallelFilter(B, A, inputSignal);
+
+nexttile
+plot(timeVector, filterSignalOut, 'r', 'LineWidth', 1.5, 'DisplayName', 'Filter sections signal')
+hold on
+plot(timeVector, parallelFilterSignal, '.-b', 'LineWidth', 1.5, 'DisplayName', 'Parallel filter function signal')
+
 
 %% Equal factor of d for all filters.
 

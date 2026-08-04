@@ -47,6 +47,14 @@ svdTolerance = 40;
 [outputSignal, f_era, zeta_era, amp_era, phase_era, modes_era, debug] = ...
     eigensystemRealisation(sig, svdTolerance, Fs, opts);
 
+poles = diag(debug.Modal.At);
+residues = debug.Modal.Ct' .* debug.Modal.Bt;
+
+inputImpulse = zeros(1, Ns);
+inputImpulse(1) = 1;
+[B, A] = buildFilterCoefficients(poles, residues, sig(1));
+parallelFilterSignal = parallelFilter(B, A, inputImpulse);
+
 % --- Match ERA modes to true modes by nearest frequency ---
 n = numel(f_true);
 idx = zeros(n,1);
@@ -132,6 +140,8 @@ hold on
 plot(t / 1000, sig, 'k', 'LineWidth', 1.5, 'DisplayName', 'Original signal')
 plot(t / 1000, outputSignal, '--r', 'LineWidth', 1.5, 'DisplayName', ...
     'Reconstructed signal')
+plot(t / 1000, parallelFilterSignal, '-.b', 'LineWidth', 1.4, ...
+    'DisplayName', 'Parallel Filter signal')
 legend
 xlabel('Time (ms)', 'Interpreter', 'latex')
 ylabel('Amplitude', 'Interpreter', 'latex')
