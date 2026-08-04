@@ -3,14 +3,13 @@ function outputSignal = parallelFilter(B, A, signal)
 [nRows, ~] = size(B);
 nSamples = numel(signal);
 
-outputSignal = zeros(nRows, nSamples);
+outputSignal = zeros(1, nSamples);
 
-parfor iRow = 1 : nRows
+for iRow = 1 : nRows
 
-    outputSignal(iRow, :) = filter(B(iRow, :), A(iRow, :), signal)
+    outputSignal = outputSignal + filter(B(iRow, :), ...
+        A(iRow, :), signal);
 
 end
-
-outputSignal = sum(outputSignal, 1);
 
 end

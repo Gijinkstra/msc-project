@@ -123,13 +123,20 @@ AMPLTIUDE_SCALING_FACTOR = 2;
 [psi, At] = eig(A);
 eigenValues = diag(At);
 
+% Sort the eigenvalues based on their imaginary components.
+[~, sortIndex] = sort(abs(imag(eigenValues)));
+sortedEigenValues = eigenValues(sortIndex);
+
 % Co-ordinate transformations for modal forms of B and C given A is now
 % diagonalised.
 Bt = psi \ B;
+sortedBt = Bt(sortIndex);
 Ct = C * psi;
+sortedCt = Ct(sortIndex);
+sortedAt = At(sortIndex, sortIndex);
 
 % Discrete to continuous time conversion
-continuousEigenValues = log(eigenValues) ./ timeStep;
+continuousEigenValues = log(sortedEigenValues) ./ timeStep;
 
 naturalFrequencies = abs(continuousEigenValues);
 
@@ -145,12 +152,11 @@ dampingFactors = -real(continuousEigenValues) ./ ...
 
 % Modes are the Ct matrix. Reassign here just for clarity and transpose for
 % consistency of output dimensions.
-modes = Ct.';
+modes = sortedCt.';
 
 % Determine the amplitude and phase of the mode via the residues of the
 % signal.
-residues = Ct.' .* Bt;
-
+residues = sortedCt.' .* sortedBt;
 
 if residueScalingFlag
     % Divide through by a multiple of the pole, depending on Hankel matrix
@@ -207,9 +213,9 @@ conjugateRetained = all(conjugateMask, 1);
 stage1Mask = reshape(repmat(conjugateRetained, 2, 1), [], 1);
 
 %% Apply Stage 1 filter to matrices — preserve conjugate pairs
-filteredAt = At(stage1Mask, stage1Mask);
-filteredBt = Bt(stage1Mask);
-filteredCt = Ct(stage1Mask);
+filteredAt = sortedAt(stage1Mask, stage1Mask);
+filteredBt = sortedBt(stage1Mask);
+filteredCt = sortedCt(stage1Mask);
 
 %% Stage 2 — Conjugate pair reduction (applied only to parameter outputs)
 stage2Mask = stage1Mask;
@@ -234,11 +240,15 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     diagnostics.At                     = At;
     diagnostics.Bt                     = Bt;
     diagnostics.Ct                     = Ct;
+    diagnostics.sortedAt               = sortedAt;
+    diagnostics.sortedBt               = sortedBt;
+    diagnostics.sortedCt               = sortedCt;
     diagnostics.totalEigenvalues       = numel(eigenValues);
     diagnostics.retainedCount          = sum(stage2Mask);
     diagnostics.filteredCount          = sum(~stage2Mask);
     diagnostics.filteredOutEigenvalues = eigenValues(~stage2Mask);
     diagnostics.residues               = residues;
+    diagnostics.poles                  = sortedEigenValues;
     diagnostics.allFrequencies         = frequencies;
     diagnostics.allDecayRates          = decayRates;
     diagnostics.allDampingFactors      = dampingFactors;
