@@ -1,7 +1,6 @@
 close all
-clear 
+clear
 clc
-
 %%
 fs = 1000;
 time = 2;
@@ -61,7 +60,8 @@ legend
 
 
 %% Setup
-dataPath = "Project\data\bridge_LDV";
+dataPath = '/Users/ali/Dev/msc-project/data/bridge_LDV'; % MAC filepath.
+% dataPath = "Project\data\bridge_LDV";
 dataInfo = dir(dataPath);
 filesToInspect = {dataInfo(3 : end).name}';
 filePaths = fullfile(dataPath, filesToInspect);
@@ -74,8 +74,8 @@ allEraAmplitude = cell(1, nFiles);
 
 % Define signal impulse start samples and noise periods for wiener filter.
 impulseStartSample = [2482
-                      2448
-                      2478
+                      2447
+                      2477
                       2460
                       2518
                       2538
@@ -100,19 +100,19 @@ frfError = 1 : length(svdTolerance);
 
 fig = figure;
 til = tiledlayout(ceil(nFiles / 4), ceil(nFiles / 4));
-ylabel(til, 'Mode order')
-xlabel(til, 'Frequency (Hz)')
+ylabel(til, 'Amplitude')
+xlabel(til, 'Time (s)')
 
 fig2 = figure;
 til2 = tiledlayout(ceil(nFiles / 4), ceil(nFiles / 4));
-xlabel(til2, 'Mode order')
-ylabel(til2, 'NMSE')
+xlabel(til2, 'Frequency (Hz)')
+ylabel(til2, 'Magnitude (dB)')
 
 for iFile = 1 : nFiles
 
     % Define file parameters.
     thisFilePath = filePaths(iFile);
-    thisFileData = readmatrix(thisFilePath);
+    thisFileData = readmatrix(thisFilePath{1});
     nSignals = size(thisFileData, 2);
     
     % The signal parameters for this file (Signal 5 only is defined as it
@@ -132,7 +132,7 @@ for iFile = 1 : nFiles
     timeVector = (0 : nSamples - 1) / newFs;
 
     % MPR
-    % [~, mprSignal] = rceps(thisFilteredSignal);
+    % [~, thisFilteredSignal] = rceps(thisFilteredSignal);
 
     % Build the impulse signal.
     inputSignal = zeros(1, nSamples);
@@ -153,12 +153,24 @@ for iFile = 1 : nFiles
     % Parallel filter the impulse signal.
     thisParallelFilteredSignal = parallelFilter(B, A, inputSignal);
 
+    [filteredSignalFft, freqAxis] = singleSidedFft(thisFilteredSignal, newFs);
+    [eraSignalFft, ~] = singleSidedFft(eraSignal, newFs);
+    [parallelSignalFft, ~] = singleSidedFft(thisParallelFilteredSignal, newFs);
+
     t1 = nexttile(til);
     hold(t1, "on")
 
     plot(timeVector, thisFilteredSignal, 'k', 'LineWidth', 1.5, 'DisplayName', 'Original impulse')
     plot(timeVector, eraSignal, '--r', 'LineWidth', 1.5, 'DisplayName', 'ERA reconstructed impulse')
     plot(timeVector, thisParallelFilteredSignal, '-.g', 'LineWidth', 1.5, 'DisplayName', 'Modal form signal')
+    legend
+
+    t2 = nexttile(til2);
+    hold(t2, "on")
+
+    plot(freqAxis, 20*log10(filteredSignalFft), 'k', 'LineWidth', 1.5, 'DisplayName', 'Original impulse')
+    plot(freqAxis, 20*log10(eraSignalFft), '--r', 'LineWidth', 1.5, 'DisplayName', 'ERA reconstructed impulse')
+    plot(freqAxis, 20*log10(parallelSignalFft), '-.g', 'LineWidth', 1.5, 'DisplayName', 'Modal form signal')
     legend
 
 end

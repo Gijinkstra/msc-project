@@ -247,8 +247,8 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     diagnostics.retainedCount          = sum(stage2Mask);
     diagnostics.filteredCount          = sum(~stage2Mask);
     diagnostics.filteredOutEigenvalues = eigenValues(~stage2Mask);
-    diagnostics.residues               = residues;
-    diagnostics.poles                  = sortedEigenValues;
+    diagnostics.residues               = residues(stage1Mask);
+    diagnostics.poles                  = sortedEigenValues(stage1Mask);
     diagnostics.allFrequencies         = frequencies;
     diagnostics.allDecayRates          = decayRates;
     diagnostics.allDampingFactors      = dampingFactors;
