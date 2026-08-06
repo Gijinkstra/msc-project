@@ -13,3 +13,6 @@
 *.blg
 *.pdf
 /build/bin/
+
+# MAC files
+*.DS_Store
