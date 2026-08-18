@@ -55,6 +55,36 @@ inputImpulse(1) = 1;
 [B, A] = buildFilterCoefficients(poles, residues, sig(1));
 parallelFilterSignal = parallelFilter(B, A, inputImpulse);
 
+[~, minPhaseSig] = rceps(sig);
+
+fmin = 0;
+fmax = 2500;
+
+[freq, growth, amp, phase]=fdm_FAST(minPhaseSig(:)', Fs, fmin, fmax, 0.05);
+
+ampE = 2*amp;      % correct for 2*cos(X) = exp(+j*X) + exp(-j*X)
+alpE = -growth;       % flip growth to obtain attenuation
+phaE = phase + 90;   % correct for sin rather than cos
+ii = find(phaE > 180);  % ensure phase lying in [-180,180]
+phaE(ii) = phaE(ii) - 360;
+
+% REMOVING SPURIOUS COMPONENTS %%%%%
+freES = freq; ampES = ampE; alpES = alpE; phaES = phaE; 
+ii = find(freES > fmin & freES < fmax); % within analysis band
+freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii); 
+ii = find(ampES > 0.1);                % significant amplitude
+freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii); 
+ii = find(alpES > 0);                   % not growing
+freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii);
+
+nSigs = length(freES);
+phaES = deg2rad(phaES);
+
+[~, fdmSignal, ~, ~] = createImpulseResponse(nSigs, Ns, Fs, Frequency=freES, ...
+    alpha=alpES, amplitude=ampES, phase=phaES, SNR=0);
+
+[fdmFft, fdmFreqAxis] = singleSidedFft(fdmSignal, Fs);
+
 % --- Match ERA modes to true modes by nearest frequency ---
 n = numel(f_true);
 idx = zeros(n,1);
@@ -142,6 +172,7 @@ plot(t / 1000, outputSignal, '--r', 'LineWidth', 1.5, 'DisplayName', ...
     'Reconstructed signal')
 plot(t / 1000, parallelFilterSignal, '-.b', 'LineWidth', 1.4, ...
     'DisplayName', 'Parallel Filter signal')
+
 legend
 xlabel('Time (ms)', 'Interpreter', 'latex')
 ylabel('Amplitude', 'Interpreter', 'latex')
@@ -188,6 +219,19 @@ legend
 title(['Comparison of decay rate for simulated signals ' ...
     'vs. ERA reconstruction'], 'Interpreter', 'latex')
 
+figure
+tiledlayout(2, 1)
+nexttile
+hold on
+plot(t / 1000, fdmSignal, '--g', 'LineWidth', 1.4, 'DisplayName', 'FDM signal')
+plot(t / 1000, sig, 'k', 'LineWidth', 1.5, 'DisplayName', 'Original signal')
+legend
+
+nexttile
+hold on
+plot(frequencyAxis / 1000, P1, 'k', 'LineWidth', 1.3, 'DisplayName', ...
+    'Composite Frequency Response')
+plot(fdmFreqAxis / 1000, fdmFft, '--g', 'LineWidth', 1.4, 'DisplayName', 'FDM signal')
 
 modeIdx = 1 : 7;
 figure

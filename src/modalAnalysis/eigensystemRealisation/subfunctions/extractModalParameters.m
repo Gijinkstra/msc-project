@@ -1,6 +1,6 @@
 function [filteredFrequencies, filteredDampingFactors, ...
-    filteredAmplitudes, filteredPhi, filteredModes, filteredDecayRates, ...
-    filteredAt, filteredBt, filteredCt, varargout] = ...
+    filteredAmplitudes, filteredPhase, filteredModes, ...
+    filteredDecayRates, filteredAt, filteredBt, filteredCt, varargout] = ...
     extractModalParameters(A, B, C, timeStep, opts)
 % EXTRACTMODALPARAMETERS  Extracts modal filtered parameters and  filtered
 %                         modal matrices from ERA state space matrices.
@@ -78,9 +78,6 @@ function [filteredFrequencies, filteredDampingFactors, ...
 %       Journal of Guidance, Control, and Dynamics, 8(5), 620-627.
 %   [2] Juang, J.-N. (1994). Applied System Identification.
 %       Prentice Hall, Englewood Cliffs, NJ. Chapters 5-7.
-%   [3] Pappa, R.S., Elliott, K.B. & Schenk, A. (1993). Consistent-mode
-%       indicator for the eigensystem realization algorithm. Journal of
-%       Guidance, Control, and Dynamics, 16(5), 852-858.
 %
 % AUTHOR:   -
 % DATE:     June 2026
@@ -99,93 +96,30 @@ assert(size(C, 2) == n, ...
     'extractModalParameters:CDimensionMismatch', ...
     'C columns must match A dimension.');
 
-if isfield(opts, 'residueScaling')
-
-    residueScalingFlag = opts.residueScaling;
-
-else
-
-    residueScalingFlag = false;
-
-end
-
-%% Constants
-TWO_PI = 2 * pi;
-
-% Necessary pole scaling factor to recover the proper phase and amplitudes.
-POLE_SCALING_FACTOR = opts.hankelSignalIndex - 1;
-
-% Used to scale amplitudes for complex conjugate pairs.
-AMPLTIUDE_SCALING_FACTOR = 2;
-
 %% Main code
 % Eigenvalues and eigenvectors of A.
 [psi, At] = eig(A);
-eigenValues = diag(At);
-
-% Sort the eigenvalues based on their imaginary components.
-[~, sortIndex] = sort(abs(imag(eigenValues)));
-sortedEigenValues = eigenValues(sortIndex);
 
 % Co-ordinate transformations for modal forms of B and C given A is now
 % diagonalised.
 Bt = psi \ B;
-sortedBt = Bt(sortIndex);
 Ct = C * psi;
-sortedCt = Ct(sortIndex);
-sortedAt = At(sortIndex, sortIndex);
-
-% Discrete to continuous time conversion
-continuousEigenValues = log(sortedEigenValues) ./ timeStep;
-
-naturalFrequencies = abs(continuousEigenValues);
 
 % Extract frequencies from the eigenvalues.
-frequencies = naturalFrequencies ./ TWO_PI;
-
-% Extract the decay rate.
-decayRates = -real(continuousEigenValues);
-
-% Extract damping factor from the eigenvalues.
-dampingFactors = -real(continuousEigenValues) ./ ...
-    naturalFrequencies;
-
-% Modes are the Ct matrix. Reassign here just for clarity and transpose for
-% consistency of output dimensions.
-modes = sortedCt.';
-
-% Determine the amplitude and phase of the mode via the residues of the
-% signal.
-residues = sortedCt.' .* sortedBt;
-
-if residueScalingFlag
-    % Divide through by a multiple of the pole, depending on Hankel matrix
-    % index.
-    correctedResidues = residues ./ ...
-        (POLE_SCALING_FACTOR .* eigenValues);
-
-else
-
-    correctedResidues = residues;
-
-end
-
-% Extract the phase and the magnitude of the residues.
-phi = angle(correctedResidues);
-
-% Amplitude is doubled due to complex conjugate.
-amplitudes =  AMPLTIUDE_SCALING_FACTOR * abs(correctedResidues);
+[sortedAt, sortedBt, sortedCt, frequencies, dampingFactors, amplitudes, ...
+    phases, decayRates, modes, poles, residues] = ...
+    extractModeComponents(At, Bt, Ct, timeStep, opts);
 
 %% Stage 1 — Non-conjugate filters (applied to both matrices and parameters)
-stage1Mask = true(size(eigenValues));
+stage1Mask = true(size(poles));
 
 % Track individual filter contributions for diagnostics
-unstableMask   = false(size(eigenValues));
-negDampMask    = false(size(eigenValues));
-overdampedMask = false(size(eigenValues));
+unstableMask   = false(size(poles));
+negDampMask    = false(size(poles));
+overdampedMask = false(size(poles));
 
 if opts.filterUnstable
-    unstableMask = (abs(eigenValues) >= 1);
+    unstableMask = (abs(poles) >= 1);
     stage1Mask   = stage1Mask & ~unstableMask;
 end
 
@@ -199,9 +133,14 @@ if opts.dampingThreshold
     stage1Mask     = stage1Mask & ~overdampedMask;
 end
 
-% Build the full mask for the state matrices.
-zeroFreqMask = (frequencies <= 0);
-stage1Mask   = stage1Mask & ~zeroFreqMask;
+% Remove the 0 frequency components.
+
+if opts.zeroFrequencyFilter
+    zeroFreqMask = (imag(poles) == 0);
+    stage1Mask = stage1Mask & ~zeroFreqMask;
+else
+    zeroFreqMask = true(size(poles));
+end
 
 % Reshape the mask into a 2*n column vector to check both conjugate pairs
 % are removed, then rebuild the original column vector. Note that this
@@ -217,12 +156,22 @@ filteredAt = sortedAt(stage1Mask, stage1Mask);
 filteredBt = sortedBt(stage1Mask);
 filteredCt = sortedCt(stage1Mask);
 
+%% Stage 1.5 - Mode energy order
+filteredPoles = poles(stage1Mask);
+filteredResidues = residues(stage1Mask);
+
+modeEnergy = abs(filteredResidues) .^ 2 ./ (1 - abs(filteredPoles) .^ 2);
+[~, sortedModeEnergies] = sort(modeEnergy);
+
+sortedPoles = filteredPoles(sortedModeEnergies);
+sortedResidues = filteredResidues(sortedModeEnergies);
+
 %% Stage 2 — Conjugate pair reduction (applied only to parameter outputs)
 stage2Mask = stage1Mask;
-negFreqMask = false(size(eigenValues));
+negFreqMask = false(size(poles));
 
 if opts.filterNegativeFreq
-    negFreqMask = (imag(eigenValues) < 0);
+    negFreqMask = (imag(poles) < 0);
     stage2Mask  = stage2Mask & ~negFreqMask;
 end
 
@@ -231,7 +180,7 @@ filteredFrequencies    = frequencies(stage2Mask);
 filteredDecayRates     = decayRates(stage2Mask);
 filteredDampingFactors = dampingFactors(stage2Mask);
 filteredModes          = modes(stage2Mask);
-filteredPhi            = phi(stage2Mask);
+filteredPhase          = phases(stage2Mask);
 filteredAmplitudes     = amplitudes(stage2Mask);
 
 %% Optional debug info.
@@ -243,12 +192,12 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     diagnostics.sortedAt               = sortedAt;
     diagnostics.sortedBt               = sortedBt;
     diagnostics.sortedCt               = sortedCt;
-    diagnostics.totalEigenvalues       = numel(eigenValues);
+    % diagnostics.totalEigenvalues       = numel(eigenValues);
     diagnostics.retainedCount          = sum(stage2Mask);
     diagnostics.filteredCount          = sum(~stage2Mask);
-    diagnostics.filteredOutEigenvalues = eigenValues(~stage2Mask);
-    diagnostics.residues               = residues(stage1Mask);
-    diagnostics.poles                  = sortedEigenValues(stage1Mask);
+    % diagnostics.filteredOutEigenvalues = eigenValues(~stage2Mask);
+    diagnostics.residues               = sortedResidues;
+    diagnostics.poles                  = sortedPoles;
     diagnostics.allFrequencies         = frequencies;
     diagnostics.allDecayRates          = decayRates;
     diagnostics.allDampingFactors      = dampingFactors;
@@ -262,5 +211,74 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     varargout{1} = diagnostics;
 
 end
+
+end
+
+function [sortedAt, sortedBt, sortedCt, frequency, dampingFactor, ...
+    amplitude, phase, decayRate, modes, poles, residues] = ...
+    extractModeComponents(At, Bt, Ct, timeStep, opts)
+
+if isfield(opts, 'residueScaling')
+    residueScalingFlag = opts.residueScaling;
+else
+    residueScalingFlag = false;
+end
+
+% Constants
+TWO_PI = 2 * pi;
+
+% Necessary pole scaling factor to recover the proper phase and amplitudes.
+POLE_SCALING_FACTOR = opts.hankelSignalIndex - 1;
+
+% Used to scale amplitudes for complex conjugate pairs.
+AMPLTIUDE_SCALING_FACTOR = 2;
+
+%% Main code.
+eigenValues = diag(At);
+
+% Sort the eigenvalues based on their imaginary components.
+[~, sortIndex] = sort(abs(imag(eigenValues)));
+poles = eigenValues(sortIndex);
+
+sortedAt = At(sortIndex, sortIndex);
+sortedBt = Bt(sortIndex);
+sortedCt = Ct(sortIndex);
+
+% Discrete to continuous time conversion
+continuousEigenValues = log(poles) ./ timeStep;
+
+naturalFrequencies = abs(continuousEigenValues);
+
+frequency = naturalFrequencies ./ TWO_PI;
+
+% Extract the decay rate.
+decayRate = -real(continuousEigenValues);
+
+% Extract damping factor from the eigenvalues.
+dampingFactor = -real(continuousEigenValues) ./ ...
+    naturalFrequencies;
+
+% Modes are the Ct matrix. Reassign here just for clarity and transpose for
+% consistency of output dimensions.
+modes = sortedCt.';
+
+% Determine the amplitude and phase of the mode via the residues of the
+% signal.
+residues = sortedCt.' .* sortedBt;
+
+if residueScalingFlag
+    % Divide through by a multiple of the pole, depending on Hankel matrix
+    % index.
+    correctedResidues = residues ./ ...
+        (POLE_SCALING_FACTOR .* eigenValues);
+else
+    correctedResidues = residues;
+end
+
+% Extract the phase and the magnitude of the residues.
+phase = angle(correctedResidues);
+
+% Amplitude is doubled due to complex conjugate.
+amplitude =  AMPLTIUDE_SCALING_FACTOR * abs(correctedResidues);
 
 end

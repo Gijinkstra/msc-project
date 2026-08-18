@@ -73,6 +73,8 @@ opts.filterNegativeFreq   = true;
 
 opts.filterOverdamped     = true;
 
+opts.zeroFrequencyFilter  = true;
+
 % Upper damping ratio bound for physical mode retention.
 % Modes with damping ratio above this threshold are considered
 % overdamped and non-resonant. Adjust for systems with high damping.
