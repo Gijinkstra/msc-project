@@ -1,0 +1,190 @@
+\subsection{Mathematical Formulation}
+\label{sec:maths}
+
+To contextualise the algorithm development carried out, the mathematical background has been included. The following section is divided into three main areas:
+
+\begin{enumerate}
+    \item \nameref{sec:era-proof}
+    \item \nameref{sec:eigendecomposition}
+    \item \nameref{sec:modal-form}
+\end{enumerate}
+
+The full ERA proof in Section \ref{sec:era-proof} is a reproduction of the work included in [INSERT REF HERE]. The author makes no claim of originality or contribution of the mathematics in this particular section, and instead has been included in full to contextualise the additional work carried out in algorithm development and parallel filter construction.
+
+\subsubsection{Eigensystem Realisation}
+\label{sec:era-proof}
+
+The full treatment and derivation of the ERA can be found in \cite{juang-1994-book}.
+
+A system is exposed to a unit impulse input signal $u[k] = \delta[k]$ with initial condition of $x[0] = 0$. The impulse response of the system, $y[k]$ (also defined as Markov parameters) are as follows:
+\begin{subequations}
+\label{eq:markov}
+\begin{align}
+    \label{eq:markov1}
+    y[0] &= d,\\
+    \label{eq:markov2}
+    y[1] &= \mathbf{c}^\top \mathbf{b},\\
+    \label{eq:markov3}
+    y[k] &= \mathbf{c}^\top \mathbf{A}^{k-1} \mathbf{b}, \quad k \geq 2
+\end{align}
+\end{subequations}
+A Hankel matrix is then defined based on the Markov parameters:
+\begin{align}
+\label{eq:hankel}
+    \mathbf{H}_0 = 
+    \begin{bmatrix} 
+        y[1] & y[2] & \dots & y[s] \\
+        y[2] & y[3] & \dots & y[s+1] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r] & y[r+1] & \dots & y[r+s-1]
+    \end{bmatrix},
+\end{align}
+alongside the shifted Hankel matrix:
+\begin{align}
+\label{eq:shift-hankel}
+    \mathbf{H}_1 = 
+    \begin{bmatrix} 
+        y[2] & y[3] & \dots & y[s+1] \\
+        y[3] & y[4] & \dots & y[s+2] \\
+        \vdots & \vdots & \ddots & \vdots \\
+        y[r+1] & y[r+2] & \dots & y[r+s]
+    \end{bmatrix},
+\end{align}
+where $r,s \in \mathbb{N}$. The values of $s$ and $r$ are set depending on the application. If they are too small, the system dynamics will not be appropriately captured, but if too large, could introduce noise sensitivity and numerical ill-conditioning.
+
+When the system is free from noise, the Hankel matrix can be factorised by making substitutions from \eqref{eq:markov}:
+\begin{align}
+\label{eq:factorised}
+    \mathbf{H}_0 = 
+    \begin{bmatrix}
+    \mathbf{c}^{\top}, & \mathbf{c}^{\top} \mathbf{A}, & \dots, & \mathbf{c}^{\top} \mathbf{A}^{r-1}
+    \end{bmatrix}^{\top}
+    \begin{bmatrix}
+    \mathbf{b}, & \mathbf{A} \mathbf{b}, & \dots, & \mathbf{A}^{s-1} \mathbf{b}
+    \end{bmatrix}
+    = \mathcal{O}_r \mathcal{C}_s,
+\end{align}
+where $\mathcal{O}_r$ and $\mathcal{C}_s$ are the extended observability and controllability matrices. Given that $r$ and $s$ are large enough, the rank of $\mathbf{H}_0$ is a minimal realisation of the system.
+
+In other words, given that enough information has been captured from the impulse response, a sufficiently large number of rows and columns utilised in the Hankel matrix will encode the entirety of the system dynamics. In a real world scenario, measurement noise will be captured in the Hankel matrix, thus the dominant modes of the system are mixed with modes corresponding to the noise. Separation of the noise modes of the system is carried out via the Singular Value Decomposition (SVD):
+\begin{align}
+\label{eq:svd}
+    \mathbf{H}_0 = \mathbf{U \Sigma V}^\top
+\end{align}
+By truncating the number $m$ of singular values so that only the dominant modes are retained, a rank-$m$ approximation yields:
+\begin{align}
+\label{eq:svdm}
+    \mathbf{H}_0 \approx \mathbf{U}_m \mathbf{\Sigma}_m \mathbf{V}_{m}^{\top}
+\end{align}
+where $\Sigma_m =$ diag$(\sigma_1,\sigma_2, \dots, \sigma_m)$ are the largest singular value entries. $U_m$ and $V_m$ are the truncated left and right singular vectors respectively.
+
+The state space matrices are composed as follows:
+\begin{align}
+\label{eq:ss}
+\hat{\mathbf{A}} &= \mathbf{\Sigma}_{m}^{-1/2} \mathbf{U}_m \mathbf{H}_1 \mathbf{V}_m \mathbf{\Sigma}_{m}^{-1/2}, \\
+\hat{\mathbf{b}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{V}_m^{\top} \mathbf{e}_{1}^{(s)}, \\
+\hat{\mathbf{c}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{U}_{m}^{\top} \mathbf{e}_{1}^{(r)}, \\
+\hat{d} &= y[0],
+\end{align}
+
+where $\mathbf{e}_{1}^{(\ell)} = [1, 0, ..., 0]^{\top}$ is a canonical basis vector with dimension $\ell$. The reconstruction of the approximate states and output can now be represented in the canonical form:
+\begin{align}
+\label{eq:output}
+\begin{cases}
+    \hat{\mathbf{x}}[k+1] = \hat{\mathbf{A}} \hat{\mathbf{x}} [k] + \hat{\mathbf{b}} u[k], \\
+    \hat{y} [k] = \hat{\mathbf{c}}^{\top} \hat{\mathbf{x}} [k] + \hat{d} u[k].
+\end{cases}
+\end{align}
+The shifted Hankel matrix $\mathbf{H}_1 = \mathcal{O}_r \mathbf{A} \mathbf{C}_s$ allows the recovery of the state transition matrix $\hat{\mathbf{A}}$. When the rank of $\hat{\mathbf{A}}$ matches the true system order, the result is the minimum realisation of the system. This provides a very explicit trade-off between the computational complexity and accuracy of the impulse response reconstruction.
+
+\subsubsection{Eigendecomposition}
+\label{sec:eigendecomposition}
+Diagonalisation of the state space matrix $\hat{\mathbf{A}}$ and associated transforms on $\hat{\mathbf{b}}$ and $\hat{\mathbf{c}}$ allow the system to be represented in terms of linearly independent modes via eigendecomposition $\hat{\mathbf{A}} = \mathbf{Q} \Lambda \mathbf{Q}^{-1}$:
+\begin{equation}
+\label{eq:coord}
+    \tilde{\mathbf{x}}       \leftarrow \mathbf{Q}^{-1}\mathbf{\hat{x}},
+    \quad \tilde{\mathbf{A}} \leftarrow \Lambda,
+    \quad \tilde{\mathbf{b}} \leftarrow \mathbf{Q}^{-1} \hat{\mathbf{b}},
+    \quad \tilde{\mathbf{c}} \leftarrow \mathbf{Q}^{\top} \hat{\mathbf{c}}
+\end{equation}
+Where $\mathbf{Q}$ is the matrix of eigenvectors of the system matrix $\mathbf{A}$ and $\mathbf{\Lambda}$ is the matrix of eigenvalues. As the eigenvalues of the system are invariant under transformation, they allow the expression of each mode of the system in a linearly independent basis.
+The eigenvalues of the system contain the frequency and damping factor information, with amplitude and phase residing in the residues. As the eigenvalues are in discrete time, they are first transformed into the continuous time domain via the following relations [INSERT ERA PPT REF HERE]:
+\begin{equation}
+    \lambda_{c,i} = \frac{\ln \lambda_{d,i}}{\tau}, \quad 
+    f_{c,i} = \frac{\abs{\Im(\lambda_{d,i})}}{2\pi}, \quad 
+    \zeta_{c,i} = \frac{-\Re(\lambda_{d,i})}{\abs{\lambda_{d,i}}}.
+\end{equation}
+where $\lambda_{c,i}$ is the continuous time eigenvalue at index $i$, $\lambda_{d,i}$ is the associated discrete time eigenvalue, $\tau$ is the timestep in seconds, $f_{c,i}$ is the associated continuous time frequency and $\zeta_{c,i}$ is the continuous time damping factor.
+After making the co-ordinate substitutions for \eqref{eq:markov}, the output is represented as follows:
+\begin{align}
+\label{eq:markov-eig}
+    \mathbf{\tilde{x}}[k + 1] = \mathbf{\Lambda} \mathbf{ \tilde{x}}[k] + \mathbf{Q^{-1} \hat{b}}u[k]\\
+    \tilde{y}[k] = \left( \mathbf{Q}^{\top} \hat{\mathbf{c}} \right)^{\top} \tilde{\mathbf{x}}[k] + \hat{d}u[k]
+\end{align}
+By exploiting the diagonal nature of the eigenvalue matrix, a further co-ordinate transformation can be carried out by taking the diagonal of $\mathbf{\Lambda}$, $\tilde{\mathbf{A}}$ = diag$(\mathbf{\Lambda}) = [\lambda_1, \lambda_2, \dots, \lambda_m]^{\top}$. Utilising this property provides an efficient and succinct method for computation of the reconstructed impulse response and physical modes of the system as an expression of powers of $\tilde{\mathbf{A}}$:
+\begin{align}
+\label{eq:markov-again}
+\begin{cases}
+    \mathbf{\tilde{x}}[k + 1] =  \tilde{\mathbf{A}}^{k-1} \mathbf{Q}^{-1} \hat{\mathbf{b}}, \\
+    \tilde{y}[k] =  \hat{\mathbf{c}}^{\top} \mathbf{Q} \tilde{\mathbf{A}}^{k-1}\mathbf{Q}^{-1}\hat{\mathbf{b}}, \quad k \geq 1
+\end{cases}
+\end{align}
+
+\subsubsection{Modal Form Realisation}
+\label{sec:modal-form}
+A parallel IIR filter formulation requires the partial fraction expansion of the complex conjugates for each mode in the system to retrieve the corresponding filter coefficients. Consider the standard discrete time transfer function for a state space system [INSERT REF HERE]:
+\begin{equation}
+\label{eq:ss-tf}
+    \mathbf{H}(z) = \mathbf{C}(z \mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D}.
+\end{equation}
+Making the substitution for the diagonalised form of the system from \eqref{eq:coord} yields the following explicit form:
+\begin{equation}
+\label{eq:modal}
+    H(z) = \begin{bmatrix} c_1 & c_2 \end{bmatrix} \left( z \mathbf{I} - \begin{bmatrix} \lambda_1 & 0 \\ 0 & \lambda_2 \end{bmatrix} \right)^{-1}
+    \begin{bmatrix} b_1 \\ b_2 \end{bmatrix} + d.
+\end{equation}
+It should be noted that $d$ in the context of ERA is simply a scalar term observed as the first sample of the signal. Expanding the transfer function explicitly will give rise to the parallel single-pole representation of the system:
+\begin{equation}
+\label{eq:one-pole}
+    H(z) = \frac{c_1 b_1}{z - \lambda_1} + \frac{c_2 b_2}{z - \lambda_2} + d
+\end{equation}
+where $c_2 = \overline{c}_1$, $b_2 = \overline{b}_1$ and $\lambda_2 = \overline{\lambda}_1$.
+Performing partial fraction expansion on \eqref{eq:one-pole} and multiplying by $z^{-2}$ gives rise to the parallel second order form which is necessary for the IIR filter implementation:
+\begin{equation}
+\label{eq:second-order}
+    H(z) = \frac{(R_1 + R_2)z^{-1} - (R_1 \lambda_2 + R_2 \lambda_1)z^{-2}}{1 - (\lambda_1 + \lambda_2)z^{-1} + |\lambda_1|^{2}z^{-2}} + d,
+\end{equation}
+
+where $R_1$ is the residue $c_1 b_1$, and $R_2$ is the residue $c_2 b_2$, which as previously highlighted, is the complex conjugate of $R_1$.
+By simplifying further by exploiting the conjugate symmetry and folding the free term $+d$ into the expression:
+\begin{equation}
+\label{eq:full-parallel}
+    H(z) = \frac{d + \left[2\Rey(R_1) - 2d\Rey(\lambda_1)\right]z^{-1} + \left[d|\lambda_1|^2 - 2\Rey(R_1\lambda_2)\right]z^{-2}}{1 - 2\Rey(\lambda_1)z^{-1} + |\lambda_1|^2 z^{-2}}.
+\end{equation}
+
+Comparing this with the standard form of second order IIR filter, the coefficients can be represented as follows:
+\begin{equation}
+\label{eq:iir-filter}
+H(z) = \frac{b_0 + b_1 z^{-1} + b_2 z^{-2}}{1 + a_1 z^{-1} + a_2 z^{-2}}
+\end{equation}
+where the coefficients for a single mode are:
+\begin{subequations}
+\label{eq:biquad-coeffs}
+\begin{align}
+    b_0 &= d, \\
+    b_1 &= 2\Rey(R_1) - 2d\Rey(\lambda_1), \\
+    b_2 &= d|\lambda_1|^2 - 2\Rey(R_1\lambda_2), \\
+    a_1 &= -2\Rey(\lambda_1), \\
+    a_2 &= |\lambda_1|^2.
+\end{align}
+\end{subequations}
+It is obvious from this description that systems of a greater number of modes, $d$ can be folded into one filter section, thus the numerator coefficients reduce to,
+\begin{subequations}
+\label{eq:biquad-coeffs-2}
+\begin{align}
+    b_0 &= 0, \\
+    b_1 &= 2\Rey(R_1), \\
+    b_2 &= -2\Rey(R_1\lambda_2), \\
+\end{align}
+\end{subequations}
+where $a_1$ and $a_2$ remain unchanged.

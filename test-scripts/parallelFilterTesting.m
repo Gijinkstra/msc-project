@@ -196,8 +196,8 @@ for iFile = 1 : nFiles
     freES = freq; ampES = ampE; alpES = alpE; phaES = phaE; 
     ii = find(freES > fmin & freES < fmax); % within analysis band
     freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii); 
-    % ii = find(ampES > 1E-6);                % significant amplitude
-    % freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii);
+    ii = find(ampES > 1E-6);                % significant amplitude
+    freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii);
     nModesRetained = length(amplitudes);
     ii = find(alpES > 0);                   % not growing
     freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii);
@@ -206,14 +206,14 @@ for iFile = 1 : nFiles
     % analysis to determine the number of frequencies to inspect. Once this
     % has been completed, retain that number of frequencies from the FDM
     % method.
-    try
-        freES = freES(1 : nModesRetained);
-        ampES = ampES(1 : nModesRetained);
-        alpES = alpES(1 : nModesRetained);
-        phaES = phaES(1 : nModesRetained);
-    catch
-        print('unlucky')
-    end
+    % try
+    %     freES = freES(1 : nModesRetained);
+    %     ampES = ampES(1 : nModesRetained);
+    %     alpES = alpES(1 : nModesRetained);
+    %     phaES = phaES(1 : nModesRetained);
+    % catch
+    %     print('unlucky')
+    % end
 
     nSigs = length(freES);
     phaES = deg2rad(phaES);
@@ -231,6 +231,7 @@ for iFile = 1 : nFiles
     plot(t2, fdmFreqAxis, 20*log10(fdmFft), '--m', 'LineWidth', 1.3, 'DisplayName', 'FDM Modal Resynthesis')
 
     allTimes(:, iFile) = [eraDur, fdmDur];
+    clear t1 t2 t3 t4;
 end
 
 function filteredSignal = wienerFilter(signal, noiseSignal, nTaps)
