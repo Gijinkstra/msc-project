@@ -157,14 +157,14 @@ filteredBt = sortedBt(stage1Mask);
 filteredCt = sortedCt(stage1Mask);
 
 %% Stage 1.5 - Mode energy order
-filteredPoles = poles(stage1Mask);
-filteredResidues = residues(stage1Mask);
+sortedPoles = poles(stage1Mask);
+sortedResidues = residues(stage1Mask);
 
-modeEnergy = abs(filteredResidues) .^ 2 ./ (1 - abs(filteredPoles) .^ 2);
-[~, sortedModeEnergies] = sort(modeEnergy);
-
-sortedPoles = filteredPoles(sortedModeEnergies);
-sortedResidues = filteredResidues(sortedModeEnergies);
+% modeEnergy = abs(filteredResidues) .^ 2 ./ (1 - abs(filteredPoles) .^ 2);
+% [~, sortedModeEnergies] = sort(modeEnergy);
+% 
+% sortedPoles = filteredPoles(sortedModeEnergies);
+% sortedResidues = filteredResidues(sortedModeEnergies);
 
 %% Stage 2 — Conjugate pair reduction (applied only to parameter outputs)
 stage2Mask = stage1Mask;

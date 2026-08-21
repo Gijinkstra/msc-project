@@ -1,64 +1,3 @@
-close all
-clear
-clc
-%%
-fs = 1000;
-time = 2;
-nSamples = (time * fs);
-freqs = [20 5 2 60 80];
-nSignals = length(freqs);
-alpha = 5 * ones(1, nSignals);
-inputSignal = zeros(1, nSamples);
-inputSignal(1) = 1;
-
-opts = eraConfig();
-opts.returnDebug = true;
-% opts.residueScaling = true;
-SNR = 10;
-
-[allSignals, outputSignal, timeVector, debug] = ...
-    createImpulseResponse(nSignals, nSamples, fs, Alpha=alpha, SNR=SNR);
-
-svdTolerance = 5;
-
-[eraSignal, frequencies, amps, phi, decayFactors, modes, debugEra] = ...
-    eigensystemRealisation(outputSignal, svdTolerance, fs, opts);
-
-figure
-tiledlayout
-nexttile
-plot(timeVector, outputSignal, 'LineWidth', 1.5, 'DisplayName', 'Original Signal')
-hold on
-plot(timeVector, eraSignal, '--k', 'LineWidth', 1.5, 'DisplayName', 'ERA Signal')
-legend("AutoUpdate", "on")
-
-residues = debugEra.Modal.residues;
-poles = debugEra.Modal.poles;
-
-[B, A] = buildFilterCoefficients(poles, residues, outputSignal(1));
-parallelFilterSignal = parallelFilter(B, A, inputSignal);
-
-nexttile
-plot(timeVector, eraSignal, '--k', 'LineWidth', 2, 'DisplayName', 'ERA signal')
-hold on
-plot(timeVector, parallelFilterSignal, '.-r', 'LineWidth', 1.3, 'DisplayName', 'Parallel filter function signal')
-legend
-
-
-% Filter the poles and residues
-filteredPoles = diag(debugEra.Modal.At);
-filteredResidues = debugEra.Modal.Ct' .* debugEra.Modal.Bt;
-
-[BT, AT] = buildFilterCoefficients(filteredPoles, filteredResidues, outputSignal(1));
-parallelFilterSignalFiltered = parallelFilter(BT, AT, inputSignal);
-
-nexttile
-plot(timeVector, eraSignal, '--k', 'LineWidth', 1.5, 'DisplayName', 'ERA signal')
-hold on
-plot(timeVector, parallelFilterSignalFiltered, '.-r', 'LineWidth', 1.5, 'DisplayName', 'Parallel filter function signal (filtered poles)')
-legend
-
-
 %% Setup
 % dataPath = '/Users/ali/Dev/msc-project/data/bridge_LDV'; % MAC filepath.
 dataPath = "Project\data\bridge_LDV";
@@ -86,23 +25,25 @@ impulseStartSample = [24820
 
 impulseEndIndex = impulseStartSample + 30000;
 
-hammerStartSample = [24670
-                     0
-                     0
-                     0
-                     0
-                     0
-                     0
-                     0
-                     0
-                     0
-                     0];
+% Define impulse hammer start sampled and noise periods for wiener filter.
+hammerStartSample = [24677
+                     24321
+                     24622
+                     24470
+                     25042
+                     25241
+                     24889
+                     24408
+                     24871
+                     24750];
 
-hammerEndSample = [24703
-                   ];
+hammerEndSample = hammerStartSample + 40;
+
+hammerStartSample = hammerStartSample - 20;
 
 noiseEndIndex = 20000;
 
+% Resampling, wiener filter and deconvolution parameters.
 originalFs = 100000;
 resampleFactor = 10;
 newFs = originalFs / resampleFactor;
@@ -113,10 +54,11 @@ lambda = 1e-2;
 opts = eraConfig();
 opts.returnDebug = true;
 opts.zeroFrequencyFilter = false;
-svdTolerance = 55;
+svdTolerance = 80;
 impulseErrors = 1 : length(svdTolerance);
 frfError = 1 : length(svdTolerance);
 
+% Figures.
 fig = figure;
 til = tiledlayout(5, 2);
 ylabel(til, 'Amplitude')
@@ -141,6 +83,7 @@ for iFile = 1 : nFiles
     thisEndSample = impulseEndIndex(iFile);
     thisHammerStartSample = hammerStartSample(iFile);
     thisHammerEndSample = hammerEndSample(iFile);
+
     thisSignal = thisFileData(:, 5);
     thisSignal = thisSignal - mean(thisSignal);
     % Split up noise and filter.
@@ -148,8 +91,8 @@ for iFile = 1 : nFiles
     % Truncate the signal to only the impulse response data.
     thisSignal = thisSignal(thisStartSample : thisEndSample);
     thisFilteredSignal = wienerFilter(thisSignal, thisNoiseSignal, nTaps);
-    % thisSignal = resample(thisSignal, 1, resampleFactor);
-    
+
+    % Apply the same process to the hammer impact signal.
     thisImpactSignal = thisFileData(:, 1);
     thisImpactSignal = thisImpactSignal - mean(thisImpactSignal);
     figure
@@ -158,14 +101,13 @@ for iFile = 1 : nFiles
     thisImpactSignal = thisImpactSignal(thisHammerStartSample : thisHammerEndSample);
     thisFilteredImpactSignal = wienerFilter(thisImpactSignal, ...
         thisImpactNoiseSignal, nTaps);
-
-    % thisFilteredSignal = resample(thisFilteredSignal, 1, resampleFactor);
-    % thisFilteredImpactSignal = resample(thisFilteredImpactSignal, 1, resampleFactor);
     
+    % Frequency domain deconvolution.
     thisFilteredSignal = deconvolveFreqDomain(thisFilteredImpactSignal, ...
         thisFilteredSignal, lambda);
     [thisFRF, freqAx] = singleSidedFft(thisFilteredSignal, 100000);
 
+    % Resample the filtered signal for processing.
     thisFilteredSignal = resample(thisFilteredSignal, 1, resampleFactor);
     nSamples = length(thisFilteredSignal);
     timeVector = (0 : nSamples - 1) / newFs;
@@ -237,7 +179,7 @@ for iFile = 1 : nFiles
     nModesRetained = length(amplitudes);
     ii = find(alpES > 0);                   % not growing
     freES = freES(ii); ampES = ampES(ii); alpES = alpES(ii); phaES = phaES(ii);
-
+    phaES = deg2rad(phaES);
     % To draw comparison between ERA and FDM, first perform ERA
     % analysis to determine the number of frequencies to inspect. Once this
     % has been completed, retain that number of frequencies from the FDM
@@ -250,13 +192,6 @@ for iFile = 1 : nFiles
     % catch
     %     print('unlucky')
     % end
-
-    nSigs = length(freES);
-    phaES = deg2rad(phaES);
-
-    % 
-    % [~, fdmSignal, ~, ~] = createImpulseResponse(nSigs, nSamples, newFs, Frequency=freES, ...
-    %     alpha=alpES, amplitude=ampES, phase=phaES, SNR=0);
 
     [b, a] = generateIIMcoefficients(freES, alpES, ampES, phaES, 1/newFs);
 
@@ -285,6 +220,9 @@ for iFile = 1 : nFiles
 end
 
 t = table(eraNMSEError', fdmNMSEError', 'VariableNames', {'ERA NMSE Error', 'FDM NMSE Error'})
+
+
+%% Subfunctions
 
 function filteredSignal = wienerFilter(signal, noiseSignal, nTaps)
 
@@ -338,18 +276,14 @@ function admittanceIR = deconvolveFreqDomain(hammerInput, bridgeVelocity, lambda
     hammerInput    = hammerInput(:)    - mean(hammerInput);
     bridgeVelocity = bridgeVelocity(:) - mean(bridgeVelocity);
 
-    % Zero-pad hammer to match velocity length (handles the 34-sample hammer)
+    % Zero-pad hammer to match bridge input.
     N = numel(bridgeVelocity);
     nfft = 2 ^ nextpow2(2 * N);
 
     H = fft(hammerInput, nfft);
     Y = fft(bridgeVelocity, nfft);
 
-    if nargin < 3 || isempty(lambda)
-        lambda = 1e-4 * mean(abs(H) .^ 2);
-    end
-
-    % Tikhonov deconvolution — preserves phase and symmetry
+    % Tikhonov deconvolution.
     frf = (Y .* conj(H)) ./ (abs(H) .^ 2 + lambda);
     admittanceIR = real(ifft(frf));
 end
