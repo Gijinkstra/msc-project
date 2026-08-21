@@ -1,15 +1,15 @@
-\subsection{Mathematical Formulation}
-\label{sec:maths}
+\section{Methods}
+\label{methods}
 
-To contextualise the algorithm development carried out, the mathematical background has been included. The following section is divided into three main areas:
+\subsection{Mathematical Formulation}
+To contextualise the algorithm development carried out, the mathematical background has been included. The following section is divided into two main areas:
 
 \begin{enumerate}
     \item \nameref{sec:era-proof}
     \item \nameref{sec:eigendecomposition}
-    \item \nameref{sec:modal-form}
 \end{enumerate}
 
-The full ERA proof in Section \ref{sec:era-proof} is a reproduction of the work included in [INSERT REF HERE]. The author makes no claim of originality or contribution of the mathematics in this particular section, and instead has been included in full to contextualise the additional work carried out in algorithm development and parallel filter construction.
+The core ERA derivation (Section~\ref{sec:era-proof}) follows \cite{dafx2026}; the eigendecomposition and modal-form realisation. The author makes no claim of originality or contribution of the mathematics in this particular section, and instead has been included in full to contextualise the additional work carried out in algorithm development and parallel filter construction. There are only small adaptions applied to the eigendecomposition description, which are largely inconsequential to the results.
 
 \subsubsection{Eigensystem Realisation}
 \label{sec:era-proof}
@@ -81,7 +81,7 @@ where $\Sigma_m =$ diag$(\sigma_1,\sigma_2, \dots, \sigma_m)$ are the largest si
 The state space matrices are composed as follows:
 \begin{align}
 \label{eq:ss}
-\hat{\mathbf{A}} &= \mathbf{\Sigma}_{m}^{-1/2} \mathbf{U}_m \mathbf{H}_1 \mathbf{V}_m \mathbf{\Sigma}_{m}^{-1/2}, \\
+\hat{\mathbf{A}} &= \mathbf{\Sigma}_{m}^{-1/2} \mathbf{U}^{\top}_m \mathbf{H}_1 \mathbf{V}_m \mathbf{\Sigma}_{m}^{-1/2}, \\
 \hat{\mathbf{b}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{V}_m^{\top} \mathbf{e}_{1}^{(s)}, \\
 \hat{\mathbf{c}} &= \mathbf{\Sigma}_{m}^{1/2} \mathbf{U}_{m}^{\top} \mathbf{e}_{1}^{(r)}, \\
 \hat{d} &= y[0],
@@ -111,10 +111,10 @@ Where $\mathbf{Q}$ is the matrix of eigenvectors of the system matrix $\mathbf{A
 The eigenvalues of the system contain the frequency and damping factor information, with amplitude and phase residing in the residues. As the eigenvalues are in discrete time, they are first transformed into the continuous time domain via the following relations [INSERT ERA PPT REF HERE]:
 \begin{equation}
     \lambda_{c,i} = \frac{\ln \lambda_{d,i}}{\tau}, \quad 
-    f_{c,i} = \frac{\abs{\Im(\lambda_{d,i})}}{2\pi}, \quad 
-    \zeta_{c,i} = \frac{-\Re(\lambda_{d,i})}{\abs{\lambda_{d,i}}}.
+    f_{i} = \frac{\abs{\Im(\lambda_{c,i})}}{2\pi}, \quad 
+    \zeta_{i} = \frac{-\Re(\lambda_{c,i})}{\abs{\lambda_{c,i}}}.
 \end{equation}
-where $\lambda_{c,i}$ is the continuous time eigenvalue at index $i$, $\lambda_{d,i}$ is the associated discrete time eigenvalue, $\tau$ is the timestep in seconds, $f_{c,i}$ is the associated continuous time frequency and $\zeta_{c,i}$ is the continuous time damping factor.
+where $\lambda_{c,i}$ is the continuous time eigenvalue at index $i$, $\lambda_{d,i}$ is the associated discrete time eigenvalue, $\tau$ is the timestep in seconds, $f_{i}$ is the associated continuous time frequency and $\zeta_{i}$ is the continuous time damping factor.
 After making the co-ordinate substitutions for \eqref{eq:markov}, the output is represented as follows:
 \begin{align}
 \label{eq:markov-eig}
@@ -130,7 +130,7 @@ By exploiting the diagonal nature of the eigenvalue matrix, a further co-ordinat
 \end{cases}
 \end{align}
 
-\subsubsection{Modal Form Realisation}
+\subsection{Modal Form Realisation}
 \label{sec:modal-form}
 A parallel IIR filter formulation requires the partial fraction expansion of the complex conjugates for each mode in the system to retrieve the corresponding filter coefficients. Consider the standard discrete time transfer function for a state space system [INSERT REF HERE]:
 \begin{equation}
@@ -188,3 +188,20 @@ It is obvious from this description that systems of a greater number of modes, $
 \end{align}
 \end{subequations}
 where $a_1$ and $a_2$ remain unchanged.
+
+\subsection{Framework Overview}
+The overall ERA framework has been simplified to four inputs, one of which is a default configuration file with default values:
+\begin{itemize}
+    \item Impulse Response: the signal to decompose.
+    \item SVD Tolerance: determines the number of modes to retain.
+    \item Sampling Frequency.
+    \item ERA Config: The configuration file which contains the default values for each individual function.
+    \item 
+\end{itemize}
+
+\subsubsection{Hankel Dimensioning}
+Hankel matrix dimensioning is carried out automatically when no inputs are provided. The Hankel dimensions are set as $\text{floor}(nSamples / 2) - 1$, creating a square matrix with the maximum number of samples available.
+
+\subsubsection{SVD Truncation}
+The SVD truncation method will vary dependant upon the value provided to the function. For values greater than 1, the SVD truncation routine will retain $2m$ singular values, where $m$ is the requested number of modes retained. If the requested number of modes is greater than the rank of the $\Sigma$ matrix, the nearest even number of modes is retained.
+If the provided value is $0 < m < 1$, the tolerance will act as a cutoff level on the normalised singular values. The maximum even number of modes above the cutoff will be retained.
