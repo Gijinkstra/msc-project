@@ -112,7 +112,9 @@ The eigenvalues of the system contain the frequency and damping factor informati
 \begin{equation}
     \lambda_{c,i} = \frac{\ln \lambda_{d,i}}{\tau}, \quad 
     f_{i} = \frac{\abs{\Im(\lambda_{c,i})}}{2\pi}, \quad 
-    \zeta_{i} = \frac{-\Re(\lambda_{c,i})}{\abs{\lambda_{c,i}}}.
+    \zeta_{i} = \frac{-\Re(\lambda_{c,i})}{\abs{\lambda_{c,i}}}, \quad
+    A_{i} = |c_{i}b_{i}|, \quad
+    \phi_{i} = \arg{c_{i}b_{i}}.
 \end{equation}
 where $\lambda_{c,i}$ is the continuous time eigenvalue at index $i$, $\lambda_{d,i}$ is the associated discrete time eigenvalue, $\tau$ is the timestep in seconds, $f_{i}$ is the associated continuous time frequency and $\zeta_{i}$ is the continuous time damping factor.
 After making the co-ordinate substitutions for \eqref{eq:markov}, the output is represented as follows:
@@ -196,7 +198,6 @@ The overall ERA framework has been simplified to four inputs, one of which is a 
     \item SVD Tolerance: determines the number of modes to retain.
     \item Sampling Frequency.
     \item ERA Config: The configuration file which contains the default values for each individual function.
-    \item 
 \end{itemize}
 
 \subsubsection{Hankel Dimensioning}
@@ -204,4 +205,15 @@ Hankel matrix dimensioning is carried out automatically when no inputs are provi
 
 \subsubsection{SVD Truncation}
 The SVD truncation method will vary dependant upon the value provided to the function. For values greater than 1, the SVD truncation routine will retain $2m$ singular values, where $m$ is the requested number of modes retained. If the requested number of modes is greater than the rank of the $\Sigma$ matrix, the nearest even number of modes is retained.
-If the provided value is $0 < m < 1$, the tolerance will act as a cutoff level on the normalised singular values. The maximum even number of modes above the cutoff will be retained.
+If the provided value is $0<m<1$, the tolerance will act as a cutoff level on the normalised singular values. The maximum even number of modes above the cutoff will be retained. In an earlier stage of the project, it was assumed that the SVD truncation would be useful for nosie rejection within the signal. Whilst this is a byproduct of separating the lower order modes, no simple method was identified for separation of the signal subspace from noise subspace with this method, thus two methods of truncation were reproduced, similar in nature to \cite{pyyeti}.
+\begin{figure}
+\centering
+\includegraphics{figures/out/svd-comparison.pdf}
+\caption{\textnormal Comparison of SVD truncation methods, number of requested modes $m=5$ (left) and tolerance threshold set to 0.1 (right)}
+\label{svd}
+\end{figure}
+
+\subsection{Modal Parameter Extraction}
+Following SVD truncation, the state space models are constructed, according to \eqref{eq:ss}. As there are no deviations from the the mathematics, there are no design considerations to discuss. Modal parameter extraction contains the majority of the interesting discussion as to how pole recovery is treated.
+Diagonalisation is carried out according to \eqref{eq:markov-again}, and the subsequent eigenvalues are sorted according to their imaginary components, similar to \cite{pyyeti}.
+Once the modal parameters frequency, phase, amplitude and damping factor are extracted using
