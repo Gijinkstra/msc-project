@@ -128,7 +128,7 @@ if opts.filterNegativeDamp
     stage1Mask  = stage1Mask & ~negDampMask;
 end
 
-if opts.dampingThreshold
+if opts.filterOverdamped
     overdampedMask = (dampingFactors > opts.dampingThreshold);
     stage1Mask     = stage1Mask & ~overdampedMask;
 end
@@ -270,7 +270,7 @@ if residueScalingFlag
     % Divide through by a multiple of the pole, depending on Hankel matrix
     % index.
     correctedResidues = residues ./ ...
-        (POLE_SCALING_FACTOR .* eigenValues);
+        (poles .^ POLE_SCALING_FACTOR);
 else
     correctedResidues = residues;
 end
