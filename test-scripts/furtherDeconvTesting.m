@@ -95,12 +95,17 @@ for iFile = 1 : nFiles
     % Apply the same process to the hammer impact signal.
     thisImpactSignal = thisFileData(:, 1);
     thisImpactSignal = thisImpactSignal - mean(thisImpactSignal);
-    figure
-    plot(thisImpactSignal)
+
     thisImpactNoiseSignal = thisImpactSignal(1 : noiseEndIndex);
     thisImpactSignal = thisImpactSignal(thisHammerStartSample : thisHammerEndSample);
     thisFilteredImpactSignal = wienerFilter(thisImpactSignal, ...
         thisImpactNoiseSignal, nTaps);
+
+    lmsImpactSignal = thisFileData(:, 1) - mean(thisFileData(:, 1));
+    lmsImpactSignal = lmsImpactSignal(thisHammerStartSample : thisHammerStartSample + 30000);
+
+    lms = dsp.LMSFilter(30001, 'StepSize', 0.005, 'Method', 'normalized lms');
+    [y, e, hEst] = lms(lmsImpactSignal, thisFilteredSignal);
     
     % Frequency domain deconvolution.
     thisFilteredSignal = deconvolveFreqDomain(thisFilteredImpactSignal, ...
@@ -324,7 +329,7 @@ function [admittanceIR, convergence, yHat] = lmsDeconvolution( ...
 
     end
 
-    % The converged weights ARE the admittance impulse response
+    % weights are the admittance
     admittanceIR = H;
 
 end

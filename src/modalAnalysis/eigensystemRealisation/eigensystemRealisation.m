@@ -177,7 +177,7 @@ hankelMatrixSignal = impulseResponse(hankelIndex : end);
     At, Bt, Ct, modalDebug] = extractModalParameters(A, B, C, timeStep, ...
     opts);
 
-%%% Modal states and output signal.
+%%% Single pole states and output signal.
 [outputSignal, modalImpulses, impulseDebug] = ...
     buildModalImpulseResponse(At, Bt, Ct, D, nSamples, opts);
 

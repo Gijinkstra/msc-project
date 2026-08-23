@@ -76,6 +76,7 @@ for iFile = 1 : nFiles
     X = convmtx(hammerInput(:), nTaps);   % convolution matrix
     X = X(1 : length(celloOutput), :);    % trim to output length
     hLS = (X' * X + lambda * eye(nTaps)) \ (X' * celloOutput(:));
+
     
     [frfAxis, frf] = singleSidedFft(hLS, fs);
 

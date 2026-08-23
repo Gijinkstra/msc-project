@@ -1,7 +1,6 @@
 function [B, A] = buildFilterCoefficients(fullPoles, fullResidues, firstSample)
 % Input check the number of residues and poles.
-
-
+% NOT CURRENTLY IMPLEMENTED.
 %%
 SOS_SECTIONS_WIDTH = 3;
 
@@ -23,9 +22,9 @@ nFilters = numel(poles);
 
 % b - filter numerators.
 % a - filter denominators.
-% d - direct feedthrough term (gain).
+% d - direct feedthrough term.
 %
-% Note: The gain terms CANNOT be distributed to the cascaded filter
+% Note: The feedthrough term CANNOT be distributed to the cascaded filter
 % sections. If there are a greater number of modes specified in the ERA
 % decomposition, this will over-attenuate the gain term and cause an offset
 % in the first sample, thus, the direct feedthrough term is folded into the

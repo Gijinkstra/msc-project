@@ -39,19 +39,20 @@ sig = sum(sigs);
 
 opts = eraConfig();
 opts.returnDebug = true;
-opts.poleScaling = true;
-svdTolerance = 40;
+opts.poleScaling = false;
+svdTolerance = 7;
 
 % Try changing the number of modes to see how the system reconstructs a
 % subspace of the original signal.
 [outputSignal, f_era, zeta_era, amp_era, phase_era, modes_era, debug] = ...
     eigensystemRealisation(sig, svdTolerance, Fs, opts);
 
-poles = diag(debug.Modal.At);
-residues = debug.Modal.Ct' .* debug.Modal.Bt;
+poles = debug.Modal.poles;
+residues = debug.Modal.residues;
 
 inputImpulse = zeros(1, Ns);
 inputImpulse(1) = 1;
+
 [B, A] = buildFilterCoefficients(poles, residues, sig(1));
 parallelFilterSignal = parallelFilter(B, A, inputImpulse);
 
@@ -95,7 +96,7 @@ end
 f_e     = f_era(idx);
 zeta_e  = zeta_era(idx);
 amp_e   = amp_era(idx);
-phase_e = wrapToPi(phase_era(idx) + pi/2);
+phase_e = phase_era(idx);
 
 debug.Reconstruction.modalImpulses = debug.Reconstruction.modalImpulses(idx, :);
 debug.Modal.decayRates = debug.Modal.decayRates(idx);
@@ -277,7 +278,7 @@ polarplot(phase_true, 'ko', 'MarkerSize', 10, 'LineWidth', 1.5, ...
     'DisplayName', ...
     'Target phase')
 hold on
-polarplot(phase_e, 'rx', 'MarkerSize', 10, ...
+polarplot(phase_era + pi/2, 'rx', 'MarkerSize', 10, ...
     'LineWidth', 1.5, 'DisplayName', 'Extracted phase')
 legend
 title(['Comparison of phase for Simulated and ERA extracted values'])
@@ -302,6 +303,7 @@ T = table(modeIdx', ...
     'Phase_true_rad','Phase_ERA_rad','Phase_err_rad'});
  
 format short g
+newline
 disp(T)
 
 H1 = debug.Hankel.shiftedHankelMatrix;

@@ -156,15 +156,9 @@ filteredAt = sortedAt(stage1Mask, stage1Mask);
 filteredBt = sortedBt(stage1Mask);
 filteredCt = sortedCt(stage1Mask);
 
-%% Stage 1.5 - Mode energy order
+%% Stage 1.5 - Mode energy order - REMOVED
 sortedPoles = poles(stage1Mask);
 sortedResidues = residues(stage1Mask);
-
-% modeEnergy = abs(filteredResidues) .^ 2 ./ (1 - abs(filteredPoles) .^ 2);
-% [~, sortedModeEnergies] = sort(modeEnergy);
-% 
-% sortedPoles = filteredPoles(sortedModeEnergies);
-% sortedResidues = filteredResidues(sortedModeEnergies);
 
 %% Stage 2 — Conjugate pair reduction (applied only to parameter outputs)
 stage2Mask = stage1Mask;
@@ -176,12 +170,12 @@ if opts.filterNegativeFreq
 end
 
 %% Apply Stage 2 filter to parameter outputs only
-filteredFrequencies    = frequencies(stage2Mask);
-filteredDecayRates     = decayRates(stage2Mask);
+filteredFrequencies = frequencies(stage2Mask);
+filteredDecayRates = decayRates(stage2Mask);
 filteredDampingFactors = dampingFactors(stage2Mask);
-filteredModes          = modes(stage2Mask);
-filteredPhase          = phases(stage2Mask);
-filteredAmplitudes     = amplitudes(stage2Mask);
+filteredModes = modes(stage2Mask);
+filteredPhase = phases(stage2Mask);
+filteredAmplitudes = amplitudes(stage2Mask);
 
 %% Optional debug info.
 if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
@@ -207,24 +201,24 @@ if nargout > 7 && isfield(opts, 'returnDebug') && opts.returnDebug
     diagnostics.filterContributions.negativeDamp = sum(negDampMask);
     diagnostics.filterContributions.overdamped   = sum(overdampedMask);
     diagnostics.filterContributions.zeroFreq     = sum(zeroFreqMask);
-
     varargout{1} = diagnostics;
 
 end
 
 end
 
+%% Subfunctions
 function [sortedAt, sortedBt, sortedCt, frequency, dampingFactor, ...
     amplitude, phase, decayRate, modes, poles, residues] = ...
     extractModeComponents(At, Bt, Ct, timeStep, opts)
-
+% Input check.
 if isfield(opts, 'residueScaling')
     residueScalingFlag = opts.residueScaling;
 else
     residueScalingFlag = false;
 end
 
-% Constants
+% Constants.
 TWO_PI = 2 * pi;
 
 % Necessary pole scaling factor to recover the proper phase and amplitudes.
