@@ -1,0 +1,74 @@
+\section{Framework Overview and Validation}
+\label{sec:framework}
+This section details major design decisions in the building of the framework, utilising the mathematical steps laid out in \ref{sec:mathematics}. Detail is added to specific stages that arise from the mismatch between mathematical theory and computational implementation.
+
+\subsection{Hankel Dimensioning}
+\label{sec:hankel}
+Hankel matrix dimensioning is carried out automatically when no inputs are provided. The Hankel dimensions are set as $\text{floor}(nSamples / 2) - 1$, creating a square matrix with the maximum number of samples available. Overdetermination of the Hankel Matrix size can cause too much of the noise of the system to be captured which has a knock on effect on subsequent steps of the algorithm. Additionally, underdetermination of the Hankel Matrix may cause the system to miss some physical modes due to insufficient data to accurately capture it's contribution, both points are raised in \cite{dafx2026}. To mitigate this, signals are recommended to be pre-truncated and filtered to reduce the degree of noise in the signal, allowing one dimension rule to be applied to each signal under investigation.
+
+\subsection{SVD Truncation}
+\label{sec:svd}
+The SVD truncation method will vary dependant upon the value provided to the function. For values greater than 1, the SVD truncation routine will retain $2m$ singular values, where $m$ is the requested number of modes retained. If the requested number of modes is greater than the rank of the $\Sigma$ matrix, the nearest even number of modes is retained.
+If the provided value is $0<m<1$, the tolerance will act as a cutoff level on the normalised singular values. The maximum even number of modes above the cutoff will be retained. In an earlier stage of the project, it was assumed that the SVD truncation would be useful for noise rejection within the signal. Whilst this is a byproduct of separating the lower order modes, no simple method was identified for separation of the signal subspace from noise subspace with this method, thus two methods of truncation were reproduced, similar in nature to \cite{pyyeti}.
+\begin{figure}
+\centering
+\includegraphics{figures/out/svd-comparison.pdf}
+\caption{\textnormal Comparison of SVD truncation methods, number of requested modes $m=5$ (left) and tolerance threshold set to 0.1 (right)}
+\label{svd}
+\end{figure}
+
+\subsection{Modal Parameter Extraction}
+\label{sec:modal}
+Following SVD truncation, the state space models are constructed, according to \eqref{eq:ss}. As there are no deviations from the the mathematics, there are no design considerations to discuss. Modal parameter extraction contains the majority of the interesting discussion as to how pole recovery is treated.
+Diagonalisation is carried out according to \eqref{eq:markov-again}, and the subsequent eigenvalues are sorted according to their imaginary components, similar to \cite{pyyeti}.
+Once the modal parameters frequency, phase, amplitude and damping factor are extracted according to \eqref{eq:era-parameters}. A set of togglable filters are then applied to the system to remove unphysical modes. Filters are built as binary masks, and applied in several stages.
+\begin{itemize}
+    \item Stage 1 Mask:
+    \begin{itemize}
+        \item Unstable pole filter: poles with magnitudes $>=1$ are removed. These poles are unphysical and correspond to a growing exponential, which is physcially impossible.
+        \item Zero frequency filter: poles with a zero frequency component (pure exponential decay) are removed. These poles violate the assumption of the mathematical framework explored in Section~\ref{sec:modal-form}, offsetting the conjugate pair indexing necessary to build the filter coefficients.
+    \end{itemize}
+    \item Stage 2 Mask:
+    \begin{itemize}
+        \item Conjugate pole verification: The pole array is reshaped into a $2\times\frac{p}{2}$ matrix, where $p$ is the number of retained poles. The array is then scanned to ensure that if one pole has been flagged for removal by the stage 1 mask, the associated conjugate pole is also removed.
+    \end{itemize}
+    \item Parameter retreival: When producing the continuous time parameters, the negative frequency components corresponding to the conjugate of the poles are removed. This mask is only applied to the output parameters, and not the acutal poles of the system. Note that the phase produced from the residue associated with each pole component in this case will be cosine phase.
+\end{itemize}
+
+\subsection{Validation: simulated signals}
+\label{sec:validation}
+\subsubsection{Clean signal example}
+\label{sec:val-clean-signal}
+A validation check with several simulated signals was carried out to verify the algorithm performed as expected on signals with a predefined and known number of modes. Figure \ref{fig:era-reconstruction} demonstrates the reconstruction of a 7 mode signal with no additional noise, and the associated errors are highlighted in Table \ref{tab:era-comparison}. Mode selection is set at the true number of system modes, i.e., 7 modes are selected corresponding to 14 singular values.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/out/era-reconstruction.pdf}
+\caption{Example of the ERA reconstruction of a simulated signal (left) and associated parallel filter reconstruction (right), signal parameters in Table \ref{tab:era-comparison}.}
+\label{fig:era-reconstruction}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{ERA modal-parameter estimation error against ground truth.}
+    \label{tab:era-comparison}
+    \begin{tabular}{c c c c c c}
+        \toprule
+        Mode & $f$ (Hz) & $\varepsilon_f$ (\%) & $\varepsilon_\alpha$ (\%) & $\varepsilon_A$ (\%) & $\varepsilon_\phi$ (\%) \\
+        \midrule
+        1 & 300  & 0.0352  & $-5.37\times10^{-10}$ & $-5.35\times10^{-9}$ & --- \\
+        2 & 300  & 0.0506  & $-1.72\times10^{-9}$  & $2.13\times10^{-8}$  & $0$ \\
+        3 & 310  & 0.0646  & $3.43\times10^{-11}$  & $-4.24\times10^{-11}$ & $0$ \\
+        4 & 500  & 0.0324  & $1.78\times10^{-11}$  & $8.88\times10^{-14}$ & $0$ \\
+        5 & 600  & 0.0285  & $2.17\times10^{-11}$  & $-6.33\times10^{-13}$ & $0$ \\
+        6 & 1000 & 0.0127  & $-8.81\times10^{-13}$ & $-3.22\times10^{-13}$ & $0$ \\
+        7 & 2400 & $-0.414$ & $-4.81\times10^{-12}$ & $2.22\times10^{-14}$ & $0$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Noisy signal example}
+\label{sec:val-noisy-signal}
+
+
+
