@@ -3,15 +3,15 @@
 
 \subsection{Experimental setup and preprocessing}
 \label{sec:experimental-setup}
-Cello body sound pressure measurements were performed on a [INSERT CELLO TYPE] Cello. The cello was 
-placed horizontally on a desk, and elevated to allow reverberation of the back plate. Each string 
-was damped by wrapping it in foam, both on the fingerboard side, and the side towards the tailpiece.
-A custom impact hammer stand\thanks{3D modelling carried out by Jack Kocaturk and base stand creation by Martin Dempsey} was developed and utilised to enable repeatable testing. An 086E80 Aluminium handle [INSERT COMPANY HERE] with a hard impact head [INSERT COMPANY HERE] was used to excite the cello bridge and record the force of impact. A [INSERT MIC MODEL] was used to record the sound pressure signal from the cello. Both the impact hammer and the microphone were powered by [INSERT AUDIO SIGNAL PROCESSING BOX] and recorded on a MAC M5 Device. Recording of the signal was initialised in MATLAB 2025B [INSERT REFERENCE HERE] for 5 seconds with a sampling rate of
-44.1kHz.
-Signal quality after each recording was screened for their quality, and any signals containing double-hits from the impact hammer, audio distortions in the sound recording or other spurious anomalies were excluded. Measurments were then truncated to [INSERT SIGNAL TRUNCATION HERE]. Five signals were selected for analysis.
+Cello body sound pressure measurements were performed on a standard Gear4music Cello. The cello was 
+placed horizontally on a desk, and the body elevated with foam with the head being supported by a solid base and towel. Each string was damped by wrapping it in foam, both on the fingerboard side, and the tailpiece side. A custom impact hammer stand\thanks{3D modelling carried out by Jack Kocaturk and base stand creation by Martin Dempsey} was developed and utilised to enable repeatable testing. An 086E80 Aluminium handle [INSERT COMPANY HERE] with a hard impact head connected to a PCB model 480C02 ICP signal conditioner was used to excite the cello bridge and record the force of impact. A Shure 58A microphone was used to record the sound pressure signal from the cello. Both the impact hammer and the microphone were powered by an Alesis i02 Express digital interface and recorded on a MAC M5 Device. Recording of the signal was initialised in MATLAB 2025B [INSERT REFERENCE HERE] for 10 seconds with a sampling rate of44.1kHz.
+The impact hammer contact point was on the left side of the bridge, with the microphone placement highlighted in [INSERT FIGURE REF].
+The impact hammer and microphone signal were inspected after each recording for their quality, and any signals containing audio distortions in the sound recording or other spurious anomalies were excluded. Measurments were then truncated to [INSERT SIGNAL TRUNCATION HERE] and five signals were selected for analysis.
 
 Due to the expensive nature of the equipment required and the delicate setup necessary to ensure high quality recordings, bridge admittance signal analysis was carried out on data provided from [INSERT DATA SOURCE]. Ten signals were provided alongside the corresponding hammer impact signals sampled at 100kHz.
 
 Both sets of data were denoised initially by selecting 2 seconds of silence at the start of the recording as training data for a Wiener filter. Following denoising, an LMS filter was applied to each signal to deconvolve the impact hammer signal with the admittance, and cello body signals to recover the "true" impulse response. Signals were then truncated to [INSERT TRUNCATION RANGE] to avoid fitting to any remaining noise in the signals. Due to the high sampling rate of the provided data, the 'resample' function [INSERT DOCS REF HERE] was applied to the admittances to obtain signals samlped at a typical audio domain rate of 44.1kHz.
+
+5 clean selected and averaged to produce attenuate the subtle inconsistencies in the applied impact hammer signal.
 
 
